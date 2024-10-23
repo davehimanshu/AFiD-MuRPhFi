@@ -73,6 +73,10 @@ subroutine ReadInputFile
         read(io,301) dummy
         read(io,301) dummy
         read(io,*) pf_D, pf_A, pf_S, pf_Tm, solidtype, pf_IC
+        read(io,301) dummy
+        read(io,301) dummy
+        read(io,301) dummy
+        read(io,*) active_COR, Ross 
 301     format(a4)
     close(io)
 

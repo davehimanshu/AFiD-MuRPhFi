@@ -24,6 +24,8 @@ module param
     integer   :: nson,idtv
     real      :: tframe, save_3D
     integer   :: active_T, active_S, pf_IC !CJH Option for passive scalars
+    integer   :: active_COR ! option for activating rotation
+    real      :: Ross ! Rossby Number
     !=================================================
     !       end of input file
     !=================================================

@@ -19,6 +19,7 @@ subroutine ExplicitTermsVZ
     real    :: udyq,udzq
     real    :: dzzvz,dyyvz
     real    :: tempit!, Gz
+    real    :: interpvytoz
 
     udyq=dyq/ren
     udzq=dzq/ren
@@ -116,6 +117,20 @@ subroutine ExplicitTermsVZ
             end do
         end do
     end if
+
+    if (active_COR.eq.1) then
+        do ic=xstart(3),xend(3)
+            imm=ic-1
+            do jc=xstart(2),xend(2)
+                jpp=jc+1
+                do kc=1,nxm
+                    interpvytoz = (vy(kc,jc,ic) + vy(kc,jpp,ic) + vy(kc,jc,imm) + vy(kc,jpp,imm))*0.25d0
+                    dq(kc,jc,ic) = dq(kc,jc,ic) - (1.d0/Ross)*(interpvytoz)
+                end do
+            end do
+        end do
+    end if    
+
 !$OMP END PARALLEL DO
 
     return

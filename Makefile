@@ -1,7 +1,7 @@
 # Choose the machine being used
 # Options: PC, SNELLIUS, IRENE, MARENOSTRUM, SUPERMUC, DISCOVERER
 MACHINE=PC
-FLAVOUR=GNU
+FLAVOUR=Intel
 # Modules required for each HPC system as follows:
 # SNELLIUS:
 #	GNU: 2022 foss/2022a HDF5/1.12.2-gompi-2022a
