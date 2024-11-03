@@ -7,7 +7,7 @@ stored in `means.h5`.
 import matplotlib.pyplot as plt
 import afidtools as afid
 
-simdir = '/scratch-shared/howland/afid_RBC/gcc'
+simdir = '/scratch/seismo/dave/test_yang/2D'
 
 # Load the time values, grid, and input parameters
 t = afid.mean_time(simdir)

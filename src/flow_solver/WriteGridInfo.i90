@@ -1,8 +1,9 @@
+# 1 "/home/dave/Codes/AFiD-MuRPhFi/src/flow_solver/WriteGridInfo.F90"
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!                                                         ! 
+!                                                         !
 !    FILE: WriteGridInfo.F90                              !
 !    CONTAINS: subroutine WriteGridInfo                   !
-!                                                         ! 
+!                                                         !
 !    PURPOSE: Write the grid information in               !
 !     cordin_info.h5                                      !
 !                                                         !

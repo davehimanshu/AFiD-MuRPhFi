@@ -51,7 +51,9 @@ class InputParams:
         fname = folder+"/bou.in"
         with open(fname,"r") as f:
             bou = f.readlines()
-        if len(bou)==55:
+        
+        print(len(bou))
+        if len(bou)==59:
             # Current format
             self.nxm, self.nym, self.nzm, self.nsst = [
                 int(n) for n in bou[2].split()

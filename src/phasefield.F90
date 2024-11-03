@@ -102,9 +102,9 @@ subroutine CreateInitialPhase
 
         !! Favier (2019) appendix A.3 validation case
         elseif (pf_IC==3) then
-            h0 = 0.4
+            h0 = 0.5
             call set_flat_interface(h0, .true.)
-            call add_temperature_mode(amp=1e-2, ymode=10, zmode=2, h0=h0)
+            call add_temperature_mode(amp=1e-1, ymode=10, zmode=2, h0=h0)
 
         else if (pf_IC==4) then
             call set_ice_sphere(r0=0.1)
@@ -269,7 +269,7 @@ subroutine add_temperature_mode(amp, ymode, zmode, h0)
                     xxx = xm(k)
                     if (xxx < h0) then
                         temp(k,j,i) = temp(k,j,i) &
-                            + amp*sin(2.0*pi*ymode*yyy)*sin(pi*xxx/h0)**2
+                            + amp*sin(4.0*pi*yyy)*((sin(2.0*pi*xxx))**2)
                     end if
                 end do
             end if
