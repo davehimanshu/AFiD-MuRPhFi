@@ -16,32 +16,35 @@ inputs = afid.InputParams(simdir)
 
 ## Nusselt number
 
-Sbar = afid.read_mean(simdir, 'Sbar')
+Tbar = afid.read_mean(simdir, 'Tbar')
+print(Tbar)
 # Calculate Nusselt numbers at lower and upper plates
-Nu_pl = (0.5 + Sbar[0,:])/grid.xmr[0]
-Nu_pu = (0.5 - Sbar[-1,:])/(inputs.alx3 - grid.xmr[-1])
+Nu_pl = (0.5 + Tbar[0,:])/grid.xm[0]
+print(Nu_pl)
+Nu_pu = (0.5 - Tbar[-1,:])/(inputs.alx3 - grid.xm[-1])
+print(Nu_pu)
 
 # Define the Peclet number
-Pec = (inputs.RayS*inputs.PraS)**0.5
+Pec = (inputs.RayT*inputs.PraT)**0.5
 
 # Calculate Nusselt number from scalar dissipation rate
-chiS = afid.read_mean(simdir, 'chiS')
-Nu_chi = afid.xmean(chiS, grid.xcr)*Pec
+chiT = afid.read_mean(simdir, 'chiT')
+Nu_chi = afid.xmean(chiT, grid.xc)*Pec
 
 # Calcuate Nusselt number from KE dissipation rate
 epsilon = afid.read_mean(simdir, 'epsilon')
 Nu_eps = 1.0 + afid.xmean(epsilon, grid.xc)*Pec
 
 # Calculate Nusselt number from global turbulent heat flux
-wS = afid.read_mean(simdir, 'vxS')
-Nu_vol = 1.0 - afid.xmean(wS, grid.xcr)*Pec
+wT = afid.read_mean(simdir, 'vxT')
+Nu_vol = 1.0 - afid.xmean(wT, grid.xc)*Pec
 
 fig, ax = plt.subplots(figsize=(6.0,2.0), layout='constrained')
-ax.plot(t, Nu_pl, label="$Nu_\mathrm{pl}$")
-ax.plot(t, Nu_pu, label="$Nu_\mathrm{pu}$")
+#ax.plot(t, Nu_pl, label="$Nu_\mathrm{pl}$")
+#ax.plot(t, Nu_pu, label="$Nu_\mathrm{pu}$")
 ax.plot(t, Nu_chi, label="$Nu_\chi$")
 ax.plot(t, Nu_eps, label="$Nu_\\varepsilon$")
-ax.plot(t, Nu_vol, label="$Nu_\mathrm{vol}$")
+#ax.plot(t, Nu_vol, label="$Nu_\mathrm{vol}$")
 ax.grid()
 ax.legend(ncols=2)
 ax.set(
@@ -50,8 +53,9 @@ ax.set(
     xlabel="$t/(H/U_f)$",
     ylabel='$Nu$'
 )
-fig.savefig('Nusselt.svg')
+fig.savefig('Nusselt.png')
 
+"""
 ## Reynolds number
 
 # Define the dimensionless inverse of viscosity
@@ -81,3 +85,4 @@ ax.set(
     ylabel=r'$Re = \sqrt{2\mathcal{K}} H / \nu$'
 )
 fig.savefig('Reynolds.svg')
+"""
