@@ -15,3 +15,5 @@ examples/*/*.ipynb
 tools/*.svg
 tools/*.png
 tools/*.mp4
+Makefile
+*.i90
