@@ -1,6 +1,6 @@
 # Choose the machine being used
 # Options: PC, SNELLIUS, IRENE, MARENOSTRUM, SUPERMUC, DISCOVERER
-MACHINE=PC
+MACHINE=Viper
 FLAVOUR=Intel
 # Modules required for each HPC system as follows:
 # SNELLIUS:
@@ -12,6 +12,10 @@ FLAVOUR=Intel
 # DISCOVERER:
 #	GNU: hdf5/1/1.14/latest-gcc-openmpi fftw/3/latest-gcc-openmpi lapack
 #	Intel: hdf5/1/1.14/latest-intel-openmpi fftw/3/latest-gcc-openmpi mkl
+# SWAN:
+# 	Intel: 
+# Viper:
+# 	Intel:  1) intel/2024.0   2) impi/2021.11   3) fftw-mpi/3.3.10   4) hdf5-mpi/1.14.1   5) mkl/2024.0  
 
 #=======================================================================
 #  Compiler options
@@ -39,6 +43,20 @@ ifeq ($(MACHINE),PC)
 		LDFLAGS = -lfftw3 -llapack -ldl
 	else
 		LDFLAGS = -lfftw3 -qmkl=sequential
+	endif
+endif
+ifeq ($(MACHINE),Swan)
+	ifeq ($(FLAVOUR),GNU)
+		LDFLAGS = -lfftw3 -llapack -ldl
+	else
+		LDFLAGS = -lfftw3 -qmkl=sequential
+	endif
+endif
+ifeq ($(MACHINE),Viper)
+	ifeq ($(FLAVOUR),GNU)
+		LDFLAGS = -lfftw3 -llapack -ldl
+	else
+		LDFLAGS = -L/opt/software/aocl/4.1.0/forIntelOmpi/lib_LP64 -lfftw3 -qmkl=sequential
 	endif
 endif
 ifeq ($(MACHINE),DISCOVERER)
