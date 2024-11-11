@@ -38,7 +38,7 @@ ifeq ($(MACHINE),PC)
 	ifeq ($(FLAVOUR),GNU)
 		LDFLAGS = -lfftw3 -llapack -ldl
 	else
-		LDFLAGS = -lfftw3 -qmkl=sequential
+		LDFLAGS = -L/opt/software/aocl/4.1.0/forIntelOmpi/lib_LP64 -lfftw3 -qmkl=sequential
 	endif
 endif
 ifeq ($(MACHINE),DISCOVERER)
