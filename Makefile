@@ -1,6 +1,6 @@
 # Choose the machine being used
 # Options: PC, SNELLIUS, IRENE, MARENOSTRUM, SUPERMUC, DISCOVERER
-MACHINE=Viper
+MACHINE=Swan
 FLAVOUR=Intel
 # Modules required for each HPC system as follows:
 # SNELLIUS:
@@ -13,9 +13,9 @@ FLAVOUR=Intel
 #	GNU: hdf5/1/1.14/latest-gcc-openmpi fftw/3/latest-gcc-openmpi lapack
 #	Intel: hdf5/1/1.14/latest-intel-openmpi fftw/3/latest-gcc-openmpi mkl
 # SWAN:
-# 	Intel: 
+# 	Intel: 1) intel-compilers/2023.2.1 2) impi/2021.10.0 3) HDF5/1.14.3 4) imkl/2023.1.0
 # Viper:
-# 	Intel:  1) intel/2024.0   2) impi/2021.11   3) fftw-mpi/3.3.10   4) hdf5-mpi/1.14.1   5) mkl/2024.0  
+# 	Intel: 1) intel/2024.0   2) impi/2021.11   3) fftw-mpi/3.3.10   4) hdf5-mpi/1.14.1   5) mkl/2024.0  
 
 #=======================================================================
 #  Compiler options
