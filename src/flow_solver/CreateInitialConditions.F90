@@ -253,7 +253,7 @@ subroutine CreateInitialConditions
         ! Most of this is now in `afid_phasefield` in the routine `CreateInitialPhase`
 
         if (pf_IC==3) then
-            h0 = 0.5
+            h0 = 0.05
             do i=xstart(3),xend(3)
                 do j=xstart(2),xend(2)
                     do k=1,nxm

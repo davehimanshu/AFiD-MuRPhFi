@@ -124,7 +124,7 @@ subroutine ExplicitTermsVY
 
     if (active_COR.eq.1) then
         do ic=xstart(3),xend(3)
-            ipp = ipp+1
+            ipp = ic+1
             do jc=xstart(2),xend(2)
                 jmm=jc-1
                 do kc=1,nxm
