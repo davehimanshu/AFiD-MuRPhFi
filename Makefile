@@ -1,6 +1,6 @@
 # Choose the machine being used
 # Options: PC, SNELLIUS, IRENE, MARENOSTRUM, SUPERMUC, DISCOVERER
-MACHINE=Raven
+MACHINE=Swan
 FLAVOUR=Intel
 # Modules required for each HPC system as follows:
 # SNELLIUS:
