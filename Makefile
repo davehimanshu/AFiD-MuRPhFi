@@ -1,6 +1,6 @@
 # Choose the machine being used
 # Options: PC, SNELLIUS, IRENE, MARENOSTRUM, SUPERMUC, DISCOVERER
-MACHINE=Swan
+MACHINE=Raven
 FLAVOUR=Intel
 # Modules required for each HPC system as follows:
 # SNELLIUS:
@@ -57,6 +57,13 @@ ifeq ($(MACHINE),Viper)
 		LDFLAGS = -lfftw3 -llapack -ldl
 	else
 		LDFLAGS = -L/opt/software/aocl/4.1.0/forIntelOmpi/lib_LP64 -lfftw3 -qmkl=sequential
+	endif
+endif
+ifeq ($(MACHINE),Raven)
+	ifeq ($(FLAVOUR),GNU)
+		LDFLAGS = -lfftw3 -llapack -ldl
+	else
+		LDFLAGS = -L/viper/u/system/soft/RHEL_9/packages/znver4/fftw/intel_2024.0-2024.0.2-impi_2021.11-2021.11.0/3.3.10/lib -L/viper/u/system/soft/RHEL_9/packages/x86_64/intel_oneapi/2024.0/mkl/2024.0/lib -lfftw3 -qmkl=sequential
 	endif
 endif
 ifeq ($(MACHINE),DISCOVERER)
