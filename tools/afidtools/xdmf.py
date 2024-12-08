@@ -222,13 +222,19 @@ def generate_field_xmf(folder, var):
 def interpolate_field_to_uniform(folder, var, scale=2):
     # Create directory to store uniform-gridded snapshots
     os.makedirs(folder+"/outputdir/viz", exist_ok=True)
-    # Create uniform x-grid to interpolate to
+    # Obtain grid and input parameters
     grid = Grid(folder)
     inputs = InputParams(folder)
+    # Create uniform x-grid (x grid is downscaled by factor scale)
     nxm = grid.xm.size
     nxu = nxm//scale
     xu = linspace(0, inputs.alx3, nxu+1)
     xu = 0.5*(xu[:-1] + xu[1:])
+
+    nxmr = grid.xmr.size
+    nxur = nxmr//scale
+    xur = linspace(0, inputs.alx3, nxur+1)
+    xur = 0.5*(xur[:-1] + xur[1:])
     # Pick corresponding grid for flow variable
     if var=="vx":
         xs = grid.xc
@@ -241,16 +247,25 @@ def interpolate_field_to_uniform(folder, var, scale=2):
         nyu, nzu = grid.ym.size//scale, grid.zm.size//scale
     filelist = sorted(os.listdir(folder+"/outputdir/fields"))
     fvlist = list(filter(lambda fname: var in fname, filelist))
-    Funi = zeros((nzu, nyu, nxu), dtype=float32)
+    if var=="phi" or var=="sal":
+        Funi = zeros((nzu, nyu, nxur), dtype=float32)
+    else:
+        Funi = zeros((nzu, nyu, nxu), dtype=float32)
+        
     for fname in fvlist:
         for k in range(nzu):
             with h5py.File(folder+"/outputdir/fields/"+fname, 'r') as f:
                 F = f['var'][scale*k,::scale,:]
+
             if var=="vx":
                 itp = interp1d(xs, F, kind='cubic', axis=-1)
             else:
                 itp = interp1d(xs, F[:,:-1], kind='cubic', axis=-1)
-            Funi[k,:,:] = itp(xu)
+            
+            if var=="sal" or var=="phi":
+                Funi[k,:,:] = itp(xur)
+            else:
+                Funi[k,:,:] = itp(xu)
         with h5py.File(folder+"/outputdir/viz/"+fname, 'a') as f:
             f['var'] = Funi
 
@@ -353,6 +368,125 @@ def generate_uniform_xmf(folder, var, scale=2):
     with open(folder+"/outputdir/"+var+"_fields.xmf","w") as f:
         f.write(formatted_xmf.toprettyxml(indent="  "))
 
+def generate_multi_var_xmf(folder, vars, scale_ps=2, scale_vt=2):
+    """
+    Generates an xmf file in the Xdmf format to allow reading of
+    the 3D fields in ParaView. This function produces a 3D array 
+    on a grid with uniform spacing, allowing for fast volume rendering.
+    If grid stretching is used in the simulation, the visualisation
+    will not be accurate! Specify the variables `vars` (list of strings)
+    ("vx", "vy", "vz", "temp", "sal", "phi") and the `folder`
+    containing the simulation.
+    """
+    # Check if the h5 files stored in the viz folder have the same size arrays for the variables within the file
+    filelist = sorted(os.listdir(folder + "/outputdir/viz"))
+    fvlist = list(filter(lambda fname: any(var in fname for var in vars), filelist))
+
+    if not fvlist:
+        raise ValueError("No files found in the viz folder for the specified variables.")
+
+    # Read the first file to get the reference shape
+    with h5py.File(folder + "/outputdir/viz/" + fvlist[0], 'r') as f:
+        ref_shape = f['var'].shape
+
+    # Check all other files for the same shape
+    for fname in fvlist[1:]:
+        with h5py.File(folder + "/outputdir/viz/" + fname, 'r') as f:
+            if f['var'].shape != ref_shape:
+                raise ValueError("The arrays are not equal in size.")
+
+    print("Files are equal.")
+
+    grid = Grid(folder)
+    inputs = InputParams(folder)
+
+    if any(var in ["phi", "sal"] for var in vars):
+        scale = scale_ps
+        nxmr, nymr, nzmr = grid.xmr.size, grid.ymr.size, grid.zmr.size
+        nxur, nyur, nzur = nxmr // scale, nymr // scale, nzmr // scale
+        dx, dy, dz = grid.xc[-1] / nxur, grid.yc[-1] / nyur, grid.zc[-1] / nzur
+        fulldims = (nzur, nyur, nxur)
+        dims = fulldims
+    else:
+        scale = scale_vt
+        nxm, nym, nzm = grid.xm.size, grid.ym.size, grid.zm.size
+        nxu, nyu, nzu = nxm // scale, nym // scale, nzm // scale
+        dx, dy, dz = grid.xc[-1] / nxm, grid.yc[-1] / nym, grid.zc[-1] / nzm
+        fulldims = (nzu, nyu, nxu)
+        dims = fulldims
+
+    # Collect indices of saved fields
+    samplist = []
+    for file in os.listdir(folder + "/outputdir/viz"):
+        if any(var in file for var in vars):
+            samplist.append(int(file[:5]))
+    samplist.sort()
+
+    # Remove duplicates from samplist
+    samplist = list(set(samplist))
+    samplist.sort()
+
+    # Check the time interval used for field writing from bou.in
+    with open(folder + "/bou.in", "r") as f:
+        for i, line in enumerate(f):
+            if i == 22:
+                t_field = float(line.split()[2])
+
+    ### BUILD THE XMF STRUCTURE ###
+    Xdmf = Element("Xdmf")
+
+    top_domain = SubElement(Xdmf, "Domain")
+
+    # Create Grid element to store the time series
+    time_series = SubElement(top_domain, "Grid", attrib={
+        "Name": "Time", "GridType": "Collection", "CollectionType": "Temporal"
+    })
+
+    for i, j in enumerate(samplist):
+        field_grid = SubElement(time_series, "Grid", attrib={
+            "Name": "field", "GridType": "Uniform"
+        })
+
+        SubElement(field_grid, "Time", attrib={"Value": "%.1f" % float(t_field * i)})
+
+        SubElement(field_grid, "Topology", attrib={
+            "TopologyType": "3DCoRectMesh", "Dimensions": "%i %i %i" % dims
+        })
+
+        geom = SubElement(field_grid, "Geometry", attrib={
+            "GeometryType": "ORIGIN_DXDYDZ"
+        })
+
+        origin_data = SubElement(geom, "DataItem", attrib={"Dimensions": "3"})
+        origin_data.text = 3 * "%.5f " % (dz / 2, dy / 2, dx / 2)
+
+        step_data = SubElement(geom, "DataItem", attrib={"Dimensions": "3"})
+        step_data.text = 3 * "%.5f " % (dz, dy, dx)
+
+        for var in vars:
+            var_att = SubElement(field_grid, "Attribute", attrib={
+                "Name": var, "AttributeType": "Scalar", "Center": "node"
+            })
+            var_slab = SubElement(var_att, "DataItem", attrib={
+                "ItemType": "HyperSlab", "Dimensions": "%i %i %i" % dims,
+                "Type": "HyperSlab"
+            })
+            slab_data = SubElement(var_slab, "DataItem", attrib={
+                "Dimensions": "3 3", "Format": "XML"
+            })
+            slab_data.text = "0 0 0 1 1 1 %i %i %i" % dims
+            var_data = SubElement(var_slab, "DataItem", attrib={
+                "Dimensions": "%i %i %i" % fulldims, "Format": "HDF"
+            })
+            var_data.text = "viz/%05i_" % j + var + ".h5:/var"
+
+    # Convert xmf structure to string
+    rough_xmf = ElementTree.tostring(Xdmf, "utf-8")
+
+    # Format string for readability and write to file
+    formatted_xmf = minidom.parseString(rough_xmf)
+    with open(folder + "/outputdir/multi_var_fields.xmf", "w") as f:
+        f.write(formatted_xmf.toprettyxml(indent="  "))
 
 def generate_rawfield_xmf(folder, var):
     """
