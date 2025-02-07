@@ -1,6 +1,6 @@
 import afidtools as afid
 import numpy as np
-folder = "/scratch/seismo/dave/melting_Ross/0.3"
+folder = "/scratch/seismo/dave/Pr_10/Ro_0.1"
 vars = ["vx", "vy", "vz", "temp", "phi"]
 scale_ps = 2
 scale_vt = 1

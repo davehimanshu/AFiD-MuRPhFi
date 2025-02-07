@@ -102,7 +102,7 @@ subroutine CreateInitialPhase
 
         !! Favier (2019) appendix A.3 validation case
         elseif (pf_IC==3) then
-            h0 = 0.1
+            h0 = 0.5
             call set_flat_interface(h0, .true.)
             call add_temperature_mode(amp=1e-2, ymode=10, zmode=10, h0=h0)
 
@@ -263,6 +263,8 @@ subroutine add_temperature_mode(amp, ymode, zmode, h0)
                         temp(k,j,i) = temp(k,j,i) &
                             + amp*sin(2.0*pi*ymode*yyy)*cos(2.0*pi*zmode*zzz)*sin(pi*xxx/h0)**2
                     end if
+                    ! Temp comdition for wetlauffer case
+                    temp(k,j,i) = 0.d0
                 end do
             else
                 do k=1,nxm

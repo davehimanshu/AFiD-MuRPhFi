@@ -1,7 +1,7 @@
 # Choose the machine being used
 # Options: PC, SNELLIUS, IRENE, MARENOSTRUM, SUPERMUC, DISCOVERER
 MACHINE=Swan
-FLAVOUR=Intel
+FLAVOUR=GNU
 # Modules required for each HPC system as follows:
 # SNELLIUS:
 #	GNU: 2022 foss/2022a HDF5/1.12.2-gompi-2022a
@@ -14,6 +14,8 @@ FLAVOUR=Intel
 #	Intel: hdf5/1/1.14/latest-intel-openmpi fftw/3/latest-gcc-openmpi mkl
 # SWAN:
 # 	Intel: 1) intel-compilers/2023.2.1 2) impi/2021.10.0 3) HDF5/1.14.3 4) imkl/2023.1.0
+# 	GCC: 1) GCC/11.3.0 2) OpenMPI/4.1.4 3) HDF5/1.12.2 4) FFTW.MPI/3.3.10 5) ScaLAPACK/2.2.0-fb
+
 # Viper:
 # 	Intel: 1) intel/2024.0   2) impi/2021.11   3) fftw-mpi/3.3.10   4) hdf5-mpi/1.14.1   5) mkl/2024.0  
 
@@ -47,7 +49,7 @@ ifeq ($(MACHINE),PC)
 endif
 ifeq ($(MACHINE),Swan)
 	ifeq ($(FLAVOUR),GNU)
-		LDFLAGS = -lfftw3 -llapack -ldl
+		LDFLAGS = -lfftw3 -lscalapack -lflexiblas -ldl
 	else
 		LDFLAGS = -lfftw3 -qmkl=sequential
 	endif
