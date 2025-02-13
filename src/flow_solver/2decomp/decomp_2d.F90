@@ -309,9 +309,6 @@ contains
        p_row = row
        p_col = col
     else
-       print *, 'nproc=',nproc
-       print *, 'prow=',p_row
-       print *, 'pcol=',p_col
        if (nproc /= p_row*p_col) then
           errorcode = 1
           call decomp_2d_abort(errorcode, &

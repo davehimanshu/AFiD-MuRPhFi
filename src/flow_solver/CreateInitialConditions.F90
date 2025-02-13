@@ -180,8 +180,6 @@ subroutine CreateInitialConditions
                 do k=1,nxm
                     xxx = xm(k)
                     temp(k,j,i) = tempbp(1,j,i) + (temptp(1,j,i) - tempbp(1,j,i))*xm(k)/alx3
-                    ! remaking temp = 0 to compare with wetlauffer case
-                    temp(k,j,i) = 0.d0
                 end do
             end do
         end do
@@ -197,8 +195,6 @@ subroutine CreateInitialConditions
                         temp(k,j,i) = temp(k,j,i) + amp*(2.d0*varptb - 1.d0)
                     else
                     temp(k,j,i) = temp(k,j,i) + eps*(2.d0*varptb - 1.d0)
-                    ! remaking temp = 0 to compare with wetlauffer case
-                    temp(k,j,i) = 0.d0
                     end if
                 end do
             end do
@@ -268,8 +264,6 @@ subroutine CreateInitialConditions
                         else
                             temp(k,j,i) = pf_Tm*(1.0 - xxx)/(1.0 - h0)
                         end if
-                        ! make temp = 0 for wetlauffer case
-                        temp(k,j,i) = 0.d0
                     end do
                 end do
             end do
