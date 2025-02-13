@@ -77,6 +77,10 @@ subroutine ReadInputFile
         read(io,301) dummy
         read(io,301) dummy
         read(io,*) active_COR, Ross 
+        read(io,301) dummy
+        read(io,301) dummy
+        read(io,301) dummy
+        read(io,*) I_advect 
 301     format(a4)
     close(io)
 
@@ -100,6 +104,7 @@ subroutine ReadInputFile
     if(flagMR.ne.0) multires = .true.
     if(flagPF.ne.0) phasefield = .true.
     if(flagsal.ne.0) salinity = .true.
+    if(I_advect.ne.0) pfield_a = .true.
 
     ! if(starea.ne.0) then 
     !   readstats = .true.

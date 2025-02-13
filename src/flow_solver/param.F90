@@ -26,6 +26,7 @@ module param
     integer   :: active_T, active_S, pf_IC !CJH Option for passive scalars
     integer   :: active_COR ! option for activating rotation
     real      :: Ross ! Rossby Number
+    integer   :: I_advect
     !=================================================
     !       end of input file
     !=================================================
@@ -91,6 +92,7 @@ module param
     logical :: phasefield=.false.
     logical :: salinity=.false.
     logical :: specwrite=.false.
+    logical :: pfield_a=.false.
 
     integer :: lvlhalo=2
 

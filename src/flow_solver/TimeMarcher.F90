@@ -64,16 +64,16 @@ subroutine TimeMarcher
         end if
 
         if (phasefield) then
-            call ExplicitPhase
-            call AddVolumePenalty
-            if (salinity) then
+           if (pfield_a) call ExplicitPhase
+           call AddVolumePenalty
+           if (salinity) then
                 call AddSaltFluxInterface
                 call AdjustMeltPoint
-            end if
-            call ImplicitPhase
+           end if
+           if (pfield_a) call ImplicitPhase
             ! Add the latent heat and salt terms *after* computing the implicit solve for phi
-            call AddLatentHeat
-            if (salinity) call AddLatentSalt
+           if (pfield_a) call AddLatentHeat
+           if (salinity) call AddLatentSalt
         end if
 
         if (moist) call ExplicitHumidity
@@ -149,6 +149,21 @@ subroutine TimeMarcher
             call update_halo(tempr,lvlhalo)
             call InterpPhiMultigrid
             call update_halo(phic,lvlhalo)
+            if (.not.pfield_a) then
+               do i = xstart(3), xend(3)
+                do j = xstart(2), xend(2)
+                 do k = 1, nxm
+                        if (phic(k,j,i) > 0.1) then
+                           temp(k,j,i) = 0.0
+                        end if
+                 end do
+                end do
+               end do
+            end if
+            call update_halo(temp,lvlhalo)
+            call InterpTempMultigrid
+            call update_halo(tempr,lvlhalo)
+
         end if
 
         if (moist) call UpdateSaturation

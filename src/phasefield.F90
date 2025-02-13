@@ -263,8 +263,6 @@ subroutine add_temperature_mode(amp, ymode, zmode, h0)
                         temp(k,j,i) = temp(k,j,i) &
                             + amp*sin(2.0*pi*ymode*yyy)*cos(2.0*pi*zmode*zzz)*sin(pi*xxx/h0)**2
                     end if
-                    ! Temp comdition for wetlauffer case
-                    temp(k,j,i) = 0.d0
                 end do
             else
                 do k=1,nxm

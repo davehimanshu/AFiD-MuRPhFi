@@ -53,7 +53,7 @@ class InputParams:
             bou = f.readlines()
         
         print(len(bou))
-        if len(bou)==59:
+        if len(bou)==63:
             # Current format
             self.nxm, self.nym, self.nzm, self.nsst = [
                 int(n) for n in bou[2].split()
