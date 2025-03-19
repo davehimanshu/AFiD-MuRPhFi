@@ -18,7 +18,7 @@ subroutine CreateInitialConditions
     implicit none
     integer :: j,k,i,kmid
     real :: xxx,yyy,zzz,eps,varptb,amp
-    real :: h0,t0,Lambda,r, x0, A, B, alpha
+    real :: t0,Lambda,r, x0, A, B, alpha
     real, dimension(11) :: yh, zh
 
     call random_seed()
@@ -253,7 +253,6 @@ subroutine CreateInitialConditions
         ! Most of this is now in `afid_phasefield` in the routine `CreateInitialPhase`
 
         if (pf_IC==3) then
-            h0 = 0.5
             do i=xstart(3),xend(3)
                 do j=xstart(2),xend(2)
                     do k=1,nxm
@@ -274,7 +273,7 @@ subroutine CreateInitialConditions
                 call read_phase_field_params(A, B, alpha)
                 t0 = 1e-3
                 x0 = 0.8
-                h0 = x0 + 2*alpha*sqrt(t0)
+!                h0 = x0 + 2*alpha*sqrt(t0)
                 do i=xstart(3),xend(3)
                     do j=xstart(2),xend(2)
                         do k=1,nxm
@@ -289,7 +288,7 @@ subroutine CreateInitialConditions
             else if (pf_IC==2) then
                 call read_phase_field_params(A, B, alpha)
                 t0 = 1e-3
-                h0 = 0.1 - 2*alpha*sqrt(t0)
+!                h0 = 0.1 - 2*alpha*sqrt(t0)
                 eps = 5e-3
                 do i=xstart(3),xend(3)
                     do j=xstart(2),xend(2)
@@ -321,9 +320,9 @@ subroutine CreateInitialConditions
                 eps = 5e-3
                 do i=xstart(3),xend(3)
                     do j=xstart(2),xend(2)
-                        h0 = 0.0
+!                        h0 = 0.0
                         do k=1,11
-                            h0 = max(h0, x0 - amp*((ym(j) - yh(k))**2 + (zm(i) - zh(k))**2))
+!                            h0 = max(h0, x0 - amp*((ym(j) - yh(k))**2 + (zm(i) - zh(k))**2))
                         end do
                         do k=1,nxm
                             call random_number(varptb)

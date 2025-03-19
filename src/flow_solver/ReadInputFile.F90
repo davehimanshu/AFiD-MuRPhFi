@@ -80,7 +80,15 @@ subroutine ReadInputFile
         read(io,301) dummy
         read(io,301) dummy
         read(io,301) dummy
-        read(io,*) I_advect 
+        read(io,*) I_advect
+        read(io,301) dummy
+        read(io,301) dummy
+        read(io,301) dummy
+        read(io,*) f_amp, ymode, zmode
+        read(io,301) dummy
+        read(io,301) dummy
+        read(io,301) dummy
+        read(io,*) h0
 301     format(a4)
     close(io)
 

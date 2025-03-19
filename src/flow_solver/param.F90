@@ -27,6 +27,9 @@ module param
     integer   :: active_COR ! option for activating rotation
     real      :: Ross ! Rossby Number
     integer   :: I_advect
+    real      :: h0
+    real      :: f_amp
+    integer   :: ymode,zmode
     !=================================================
     !       end of input file
     !=================================================

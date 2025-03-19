@@ -78,7 +78,6 @@ end subroutine DeallocatePFVariables
 !> Set the initial state of the phase field
 subroutine CreateInitialPhase
     ! use afid_salinity, only: sal, PraS
-    real :: h0
 
     if (salinity) then
         !! Ice above salty water (1D_DDMelting example)
@@ -88,7 +87,6 @@ subroutine CreateInitialPhase
         !! 1D freezing/moving example
         !! (RayT > 0: melting; RayT < 0: freezing)
         if (pf_IC==1) then
-            h0 = 0.1
             if (RayT > 0) then
                 call set_flat_interface(h0, .true.)
             else
@@ -102,16 +100,14 @@ subroutine CreateInitialPhase
 
         !! Favier (2019) appendix A.3 validation case
         elseif (pf_IC==3) then
-            h0 = 0.5
             call set_flat_interface(h0, .true.)
-            call add_temperature_mode(amp=5e-2, ymode=5, zmode=5, h0=h0)
+            call add_temperature_mode(f_amp, ymode, zmode, h0)
 
         else if (pf_IC==4) then
             call set_ice_sphere(r0=0.1)
         
         !! 1D supercooling example
         elseif (pf_IC==5) then
-            h0 = 0.02
             call set_flat_interface(h0, .false.)
             call set_temperature_interface(h0, .true.)
         end if
