@@ -26,10 +26,10 @@ module param
     integer   :: active_T, active_S, pf_IC !CJH Option for passive scalars
     integer   :: active_COR ! option for activating rotation
     real      :: Ross ! Rossby Number
-    integer   :: I_advect
-    real      :: h0
-    real      :: f_amp
-    integer   :: ymode,zmode
+    integer   :: I_advect ! Interface advect
+    real      :: h0 ! Initial interface height
+    real      :: f_amp ! fluctuations amplitude
+    integer   :: ymode,zmode ! modes in each horizontal direction
     !=================================================
     !       end of input file
     !=================================================
