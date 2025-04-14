@@ -2,7 +2,7 @@ program AFiD
     use mpih
     use param
     use local_arrays, only: vx,vy,vz,temp,pr
-    ! use mgrd_arrays, only: phic,tempr,phi!,vxr,vyr,vzr,salc,sal
+    use mgrd_arrays, only: tempr!,vxr,vyr,vzr,salc,sal
     use AuxiliaryRoutines
     use hdf5
     use decomp_2d
@@ -96,9 +96,9 @@ program AFiD
 
     call InitTimeMarchScheme
 
+    if (multires) call InitMgrdVariables  !CS mgrd
     call InitVariables
     call InitPressureVars
-    if (multires) call InitMgrdVariables  !CS mgrd
     if (salinity) call InitSalVariables
     if (phasefield) call InitPFVariables
     if (moist) call InitMoistVariables
@@ -150,7 +150,11 @@ program AFiD
     ! if(statcal) nstatsamples = 0
 
     call InitPressureSolver
-    call SetTempBCs
+    if (multires_T) then
+            call SetTempBCrs
+    else
+            call SetTempBCs
+    end if
     if (salinity) call SetSalBCs
     if (moist) call SetHumidityBCs
 
@@ -169,6 +173,9 @@ program AFiD
         instCFL=0.d0
 
         call CreateInitialConditions
+
+        if(ismaster) write(6,*) 'Created initial condition'
+
         if (salinity) call CreateInitialSalinity
         if (phasefield) call CreateInitialPhase
         if (moist) call CreateInitialHumidity
@@ -177,52 +184,68 @@ program AFiD
 
 !CS   Create multigrid stencil for interpolation
     if (multires) call CreateMgrdStencil
+    if(ismaster) write(6,*) 'A'    
     if (phasefield .and. IBM) call CreatePFStencil
-
+    if(ismaster) write(6,*) 'B'  
     if (phasefield) call update_halo(phi,lvlhalo)
-
+    if(ismaster) write(6,*) 'C'  
     if (IBM) then
         call topogr
         ! if (phasefield) call UpdateIBMLocation
     end if
-
+    if(ismaster) write(6,*) 'D'  
     if (specwrite) then
         call InitAveragingVariables
         call InitSpectra
     end if
-
+    if(ismaster) write(6,*) 'E'  
 !EP   Update all relevant halos
     call update_halo(vx,lvlhalo)
     call update_halo(vy,lvlhalo)
     call update_halo(vz,lvlhalo)
-    call update_halo(temp,lvlhalo)
+    if(ismaster) write(6,*) 'F'     
+    if (multires_T) then
+            call update_halo(tempr,lvlhalo)
+    else
+            call update_halo(temp,lvlhalo)
+    end if
+     if(ismaster) write(6,*) 'G'     
     if (salinity) call update_halo(sal,lvlhalo)
     call update_halo(pr,lvlhalo)
     if (moist) call update_halo(humid,lvlhalo)
     if (moist) call UpdateSaturation
-
+    if(ismaster) write(6,*) 'H'  
 
 !CS   Interpolate initial values
-    if (salinity) then
+    if (salinity .or. multires_T) then
         call InterpVelMgrd
-        call InterpSalMultigrid
-    end if
-    if (phasefield) then
-        call InterpTempMultigrid
-        call InterpPhiMultigrid
-    end if
-
-!EP   Update all relevant halos
-    if (salinity) then
         call update_halo(vxr,lvlhalo)
         call update_halo(vyr,lvlhalo)
         call update_halo(vzr,lvlhalo)
-        call update_halo(salc,lvlhalo)
     end if
+    if(ismaster) write(6,*) 'I'     
+    if (salinity) then
+        call InterpSalMultigrid
+        call update_halo(salc,lvlhalo)       
+    end if
+    if(ismaster) write(6,*) 'J'     
+    if (multires_T) then
+            call InterpTempMultigridr
+    end if
+    if(ismaster) write(6,*) 'K'     
     if (phasefield) then
-        call update_halo(tempr,lvlhalo)
+        if (.not. multires_T) call InterpTempMultigrid
+        call InterpPhiMultigrid
         call update_halo(phic,lvlhalo)
     end if
+    if(ismaster) write(6,*) 'L'     
+    if (multires_T) then
+            call update_halo(temp,lvlhalo)
+    else
+            call update_halo(tempr,lvlhalo)
+    end if
+    if(ismaster) write(6,*) 'M'     
+    if(ismaster) write(6,*) 'Completed interpolation and ghost cell updates'  
 
     call CalcMeanProfiles
     ! if (specwrite) call WritePowerSpec

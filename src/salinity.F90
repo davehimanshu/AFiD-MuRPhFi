@@ -15,9 +15,6 @@ module afid_salinity
     real, allocatable, dimension(:,:,:) :: rusal    !! RK storage array for salinity (previous substep)
     real, allocatable, dimension(:,:,:) :: hsal     !! RK storage array for salinity
     real, allocatable, dimension(:,:,:) :: salc     !! Interpolated salinity field on coarse grid
-    real, allocatable, dimension(:,:,:) :: vxr      !! Velocity interpolated to refined grid (x component)
-    real, allocatable, dimension(:,:,:) :: vyr      !! Velocity interpolated to refined grid (y component)
-    real, allocatable, dimension(:,:,:) :: vzr      !! Velocity interpolated to refined grid (z component)
 
     real :: rays    !! Solutal Rayleigh number
     real :: pras    !! Schmidt number (solutal Prandtl number)
@@ -45,9 +42,6 @@ subroutine InitSalVariables
 
     ! Main arrays with ghost cells
     call AllocateReal3DArray(sal,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
-    call AllocateReal3DArray(vxr,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
-    call AllocateReal3DArray(vyr,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
-    call AllocateReal3DArray(vzr,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
     
     ! Runge-Kutta storage arrays (without ghost cells)
     call AllocateReal3DArray(rusal,1,nxr,xstartr(2),xendr(2),xstartr(3),xendr(3))
@@ -77,6 +71,8 @@ subroutine DeallocateSalVariables
 
     ! Main array
     call DestroyReal3DArray(sal)
+
+    !!! check this stuff, may need to be places somwhere else !!!
     call DestroyReal3DArray(vxr)
     call DestroyReal3DArray(vyr)
     call DestroyReal3DArray(vzr)

@@ -10,7 +10,7 @@ import numpy as np
 
 #----------------------------------------------------------------------------------#
 #------------------------- Set the simulation directory ---------------------------#
-simdir = '/scratch/seismo/dave/rotate_run'
+simdir = '/scratch/seismo/dave/2d_multitemp_test'
 #----------------------------------------------------------------------------------#
 
 #----------------------------------------------------------------------------------#
@@ -20,8 +20,8 @@ t = afid.mean_time(simdir)
 grid = afid.Grid(simdir)
 inputs = afid.InputParams(simdir)
 # Define the start and end times for averaging
-t_start = 1500
-t_end = 2000
+t_start = 400
+t_end = 500
 # Find the indices corresponding to t_start and t_end
 start_idx = np.searchsorted(t, t_start)
 end_idx = np.searchsorted(t, t_end)
@@ -30,8 +30,8 @@ end_idx = np.searchsorted(t, t_end)
 #---------------------------------------------------------------------------------------#
 # calculate mean values of Temperature and velocity and obtain temperature fluctuations #
 #---------------------------------------------------------------------------------------#
-Tbar = afid.read_mean(simdir, 'Tbar')
-Trms = afid.read_mean(simdir, 'Trms')
+Tbar = afid.read_mean(simdir, 'Trbar')
+Trms = afid.read_mean(simdir, 'Trrms')
 Trms_fluc = np.sqrt(Trms**2 - Tbar**2)
 vyrms = afid.read_mean(simdir, 'vyrms')
 vzrms = afid.read_mean(simdir, 'vzrms')
@@ -42,36 +42,36 @@ vxrms = afid.read_mean(simdir, 'vxrms')
 #--------------------------------- Nusselt number ---------------------------------#
 #----------------------------------------------------------------------------------#
 # Calculate Nusselt numbers at lower and upper plates
-Nu_pl = -(Tbar[0,:] - 0.5)/grid.xm[0]
-Nu_pu = -(-0.5 - Tbar[-1,:])/(1.0 - grid.xm[-1])
+Nu_pl = -(Tbar[0,:] - 0.5)/grid.xmr[0]
+Nu_pu = -(-0.5 - Tbar[-1,:])/(1.0 - grid.xmr[-1])
 
 # Define the Peclet number
-Pec = (inputs.RayT*inputs.PraT)**0.5
+#Pec = (inputs.RayT*inputs.PraT)**0.5
 
 # Calculate Nusselt number from scalar dissipation rate
-chiT = afid.read_mean(simdir, 'chiT')
-Nu_chi = afid.xmean(chiT, grid.xc)*Pec
+#chiT = afid.read_mean(simdir, 'chiT')
+#Nu_chi = afid.xmean(chiT, grid.xcr)*Pec
 
 # Calcuate Nusselt number from KE dissipation rate
 #epsilon = afid.read_mean(simdir, 'epsilon')
 #Nu_eps = 1.0 + afid.xmean(epsilon, grid.xc)*Pec
 
 # Calculate Nusselt number from global turbulent heat flux
-xT = afid.read_mean(simdir, 'vxT')
-Nu_vol = 1.0 + afid.xmean(xT, grid.xc)*Pec
+#xT = afid.read_mean(simdir, 'vxT')
+#Nu_vol = 1.0 + afid.xmean(xT, grid.xc)*Pec
 
 # Make the time series plot for Nusselt numbers
 fig, ax = plt.subplots(figsize=(6.0,2.0), layout='constrained')
 ax.plot(t, Nu_pl, label="$Nu_\mathrm{pl}$")
 ax.plot(t, Nu_pu, label="$Nu_\mathrm{pu}$")
-ax.plot(t, Nu_chi, label="$Nu_\chi$")
+#ax.plot(t, Nu_chi, label="$Nu_\chi$")
 #ax.plot(t, Nu_eps, label="$Nu_\\varepsilon$")
-ax.plot(t, Nu_vol, label="$Nu_\mathrm{vol}$")
+#ax.plot(t, Nu_vol, label="$Nu_\mathrm{vol}$")
 ax.grid()
 ax.legend(ncols=2)
 ax.set(
     xlim=[0,t[-1]],
-    ylim=[0,20],
+    ylim=[0,200],
     xlabel="$t/(H/U_f)$",
     ylabel='$Nu$'
 )
@@ -84,14 +84,14 @@ fig.savefig('Nusselt.png')
 # Calculate the averaged Nusselt numbers
 Nu_pl_avg = np.mean(Nu_pl[start_idx:end_idx])
 Nu_pu_avg = np.mean(Nu_pu[start_idx:end_idx])
-Nu_chi_avg = np.mean(Nu_chi[start_idx:end_idx])
-Nu_vol_avg = np.mean(Nu_vol[start_idx:end_idx])
+#Nu_chi_avg = np.mean(Nu_chi[start_idx:end_idx])
+#Nu_vol_avg = np.mean(Nu_vol[start_idx:end_idx])
 
 print(f"Averaged Nusselt numbers between t={t_start} and t={t_end}:")
 print(f"Nu_pl_avg: {Nu_pl_avg}")
 print(f"Nu_pu_avg: {Nu_pu_avg}")
-print(f"Nu_chi_avg: {Nu_chi_avg}")
-print(f"Nu_vol_avg: {Nu_vol_avg}")
+#print(f"Nu_chi_avg: {Nu_chi_avg}")
+#print(f"Nu_vol_avg: {Nu_vol_avg}")
 #----------------------------------------------------------------------------------#
 
 #----------------------------------------------------------------------------------#
@@ -123,6 +123,9 @@ ax.set(
 fig.savefig('Reynolds.png')
 #----------------------------------------------------------------------------------#
 
+
+
+
 #----------------------------------------------------------------------------------#
 #--------------------------------- Averaged Reynolds number -----------------------#
 #----------------------------------------------------------------------------------#
@@ -136,7 +139,7 @@ print(f"Re_v_avg: {Re_v_avg}")
 print(f"Re_h_avg: {Re_h_avg}")
 print(f"Re_t_avg: {Re_t_avg}")
 #----------------------------------------------------------------------------------#
-
+"""
 #----------------------------------------------------------------------------------#
 #------------------------Calculate average profiles over time ---------------------#
 #----------------------------------------------------------------------------------#
@@ -190,7 +193,7 @@ fig4.savefig('Velocity_Temp_RMS_Avg_Sym.png')
 #----------------------------------------------------------------------------------#
 def gradient_ascent(y, x, learning_rate=0.005, tolerance=1e-7, max_iter=2000):
    
-    """
+    ### comment here ###
     Perform gradient ascent to find the maximum of a function given x and y arrays.
 
     Args:
@@ -202,8 +205,8 @@ def gradient_ascent(y, x, learning_rate=0.005, tolerance=1e-7, max_iter=2000):
 
     Returns:
         np.ndarray: Array containing the x and y values of the maximum [x_max, y_max].
-    """
- 
+    
+    ### comment here ###
     # Ensure inputs are numpy arrays
     x = np.array(x)
     y = np.array(y)
@@ -255,3 +258,4 @@ ax5.legend()
 ax5.grid()
 fig5.savefig('Maxima_Profiles.png')
 #----------------------------------------------------------------------------------#
+"""

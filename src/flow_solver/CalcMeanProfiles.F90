@@ -16,7 +16,7 @@ subroutine CalcMeanProfiles
     use decomp_2d, only: xstart,xend
     use afid_salinity, only: CalcSalStats, CreateSalinityH5Groups
     use afid_moisture, only: CalcMoistStats, CreateMoistH5Groups
-    use afid_phasefield, only: CalcPhiStats, CreatePhaseH5Groups
+    use afid_phasefield, only: CalcPhiStats, CreatePhaseH5Groups, CalcMultiTempStats, CreateMultiTempH5Groups
     
     implicit none
 
@@ -128,39 +128,6 @@ subroutine CalcMeanProfiles
 
     call MpiSumReal1D(chiT,nxm)
 
-    ! do i=xstart(3),xend(3)
-    !     ip = i + 1
-    !     im = i - 1
-    !     do j=xstart(2),xend(2)
-    !         jp = j + 1
-    !         jm = j - 1
-    !         do k=1,nxm
-    !             chiT2(k) = chiT2(k) + &     ! (dT/dz)^2 + (dT/dy)^2
-    !                     0.5*dz**2*((temp(k,j,ip) - temp(k,j,i))**2 + (temp(k,j,i) - temp(k,j,im))**2) + &
-    !                     0.5*dy**2*((temp(k,jp,i) - temp(k,j,i))**2 + (temp(k,j,i) - temp(k,jm,i))**2)
-    !         end do
-    !         k = 1
-    !         kp = 2
-    !         chiT2(k) = chiT2(k) + &
-    !                 0.5*((temp(kp,j,i) - temp(k,j,i))**2*udx3c(kp)**2 + &
-    !                     TfixS*(temp(k,j,i) - tempbp(1,j,i))**2/xm(k)**2)
-    !         do k=2,nxm-1
-    !             kp = k + 1
-    !             km = k - 1
-    !             chiT2(k) = chiT2(k) + &     ! (dT/dx)^2
-    !                     0.5*((temp(kp,j,i) - temp(k,j,i))**2*udx3c(kp)**2 + &
-    !                          (temp(k,j,i) - temp(km,j,i))**2*udx3c(k)**2)
-    !         end do
-    !         k = nxm
-    !         km = nxm - 1
-    !         chiT2(k) = chiT2(k) + &
-    !                 0.5*(TfixN*(temptp(1,j,i) - temp(k,j,i))**2/(alx3 - xm(k))**2 + &
-    !                     (temp(k,j,i) - temp(km,j,i))**2*udx3c(k)**2)
-    !     end do
-    ! end do
-
-    ! call MpiSumReal1D(chiT2,nxm)
-
     do i=xstart(3),xend(3)
         ip = i + 1
         im = i - 1
@@ -202,7 +169,6 @@ subroutine CalcMeanProfiles
 
     do k=1,nxm
         chiT(k) = chiT(k)*inym*inzm/pect
-        ! chiT2(k) = chiT2(k)*inym*inzm/pect
         epsilon(k) = epsilon(k)*inym*inzm/ren
     end do
 
@@ -215,6 +181,7 @@ subroutine CalcMeanProfiles
             call HdfCreateMeansFile(filename)
             if (salinity) call CreateSalinityH5Groups(filename)
             if (phasefield) call CreatePhaseH5Groups(filename)
+            if (multires_T) call CreateMultiTempH5Groups(filename)
             if (moist) call CreateMoistH5Groups(filename)
         end if
     end if
@@ -274,6 +241,8 @@ subroutine CalcMeanProfiles
 
     if (phasefield) call CalcPhiStats
 
+    if (multires_T) call CalcMultiTempStats
+
     if (moist) call CalcMoistStats
 
     call MpiBarrier
@@ -325,8 +294,6 @@ subroutine HdfCreateMeansFile(filename)
     call h5gclose_f(group_id,hdf_error)
     call h5gcreate_f(file_id,"chiT",group_id,hdf_error)
     call h5gclose_f(group_id,hdf_error)
-    ! call h5gcreate_f(file_id,"chiT2",group_id,hdf_error)
-    ! call h5gclose_f(group_id,hdf_error)
     call h5gcreate_f(file_id,"epsilon",group_id,hdf_error)
     call h5gclose_f(group_id,hdf_error)
 

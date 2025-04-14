@@ -11,6 +11,7 @@
 subroutine WriteFlowField(final)
     use param
     use local_arrays, only: vz,vy,vx,temp,pr
+    use mgrd_arrays, only: tempr
     use afid_salinity, only: sal
     use afid_phasefield, only: phi
     use afid_moisture, only: humid
@@ -24,8 +25,13 @@ subroutine WriteFlowField(final)
         write(frame,"(i5.5)")nint(time/save_3D)
         basename='outputdir/fields/'//frame
     end if
-    filnam1 = trim(basename)//'_temp.h5'
-    call HdfWriteRealHalo3D(filnam1,temp)
+    if (multires_T) then
+            filnam1 = trim(basename)//'_temp.h5'
+            call HdfWriteRealHalo3DR(filnam1,tempr)
+    else
+            filnam1 = trim(basename)//'_temp.h5'
+            call HdfWriteRealHalo3D(filnam1,temp)
+    end if
     filnam1 = trim(basename)//'_vx.h5'
     call HdfWriteRealHalo3D(filnam1,vx)
     filnam1 = trim(basename)//'_vy.h5'

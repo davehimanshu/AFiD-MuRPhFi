@@ -37,18 +37,6 @@ subroutine InitMgrdVariables
     call AllocateReal1DArray(udx3cr,1,nxr)
     call AllocateReal1DArray(udx3mr,1,nxr)
 
-    ! call AllocateReal1DArray(ap3ckr,1,nxr)
-    ! call AllocateReal1DArray(ac3ckr,1,nxr)
-    ! call AllocateReal1DArray(am3ckr,1,nxr)
-
-    ! call AllocateReal1DArray(ap3sskr,1,nxr)
-    ! call AllocateReal1DArray(ac3sskr,1,nxr)
-    ! call AllocateReal1DArray(am3sskr,1,nxr)
-
-    ! call AllocateReal1DArray(ap3spkr,1,nxr)
-    ! call AllocateReal1DArray(ac3spkr,1,nxr)
-    ! call AllocateReal1DArray(am3spkr,1,nxr)
-
     call AllocateInt1dArray(kmcr,1,nxr)
     call AllocateInt1dArray(kpcr,1,nxr)
     call AllocateInt1dArray(kmvr,1,nxr)
@@ -97,6 +85,38 @@ subroutine InitMgrdVariables
     call AllocateReal2DArray(cysalc,1,4,1,nym)
     call AllocateReal2DArray(czsalc,1,4,1,nzm)
 
+    if (multires_T) then
+            call AllocateReal1DArray(ap3ssk,1,nxr)
+            call AllocateReal1DArray(ac3ssk,1,nxr)
+            call AllocateReal1DArray(am3ssk,1,nxr)   
+    end if
+
+    !-------------------------------------------------
+    ! Array for refined temperature boundary conditions
+    !-------------------------------------------------
+    if (multires_T) then
+           call AllocateReal3DArray(tempbp,1,1,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
+           call AllocateReal3DArray(temptp,1,1,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
+    end if
+
+    !-------------------------------------------------
+    ! Arrays for refined grid velocity
+    !-------------------------------------------------
+    if (multires_T .or. salinity) then
+          call AllocateReal3DArray(vxr,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
+          call AllocateReal3DArray(vyr,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
+          call AllocateReal3DArray(vzr,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
+    end if
+    !-----------------------------------------------
+    ! Array for refined temperature
+    !-----------------------------------------------
+    if (phasefield .or. multires_T) then
+          call AllocateReal3DArray(tempr,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
+    end if
+    if (multires_T) then
+            call AllocateReal3DArray(hror,1,nxr,xstartr(2),xendr(2),xstartr(3),xendr(3))
+            call AllocateReal3DArray(rutempr,1,nxr,xstartr(2),xendr(2),xstartr(3),xendr(3))              
+    end if
     if (IBM) then
         if (phasefield) then
             call AllocateReal2DArray(cych,1,4,1,nym)
@@ -113,6 +133,6 @@ subroutine InitMgrdVariables
     call AllocateReal3DArray(tpdvr,-1,nxr+1,xstartr(2)-2,xendr(2)+2,xstartr(3)-2,xendr(3)+2)
 
     ! RHS array without ghost cells
-    call AllocateReal3DArray(rhsr,1,nxmr,xstartr(2),xendr(2),xstartr(3),xendr(3))
+    call AllocateReal3DArray(rhsr,1,nxr,xstartr(2),xendr(2),xstartr(3),xendr(3))
     return
 end subroutine InitMgrdVariables

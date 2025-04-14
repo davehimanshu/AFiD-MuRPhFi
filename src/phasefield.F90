@@ -13,7 +13,6 @@ module afid_phasefield
     real, allocatable, dimension(:,:,:) :: ruphi    !! RK storage array for phase-field (previous substep)
     real, allocatable, dimension(:,:,:) :: hphi     !! RK storage array for phase-field
     real, allocatable, dimension(:,:,:) :: phic     !! Interpolated phase-field on coarse grid (also used to store d(phi)/dt)
-    real, allocatable, dimension(:,:,:) :: tempr    !! Interpolated temperature field on refined grid
 
     real :: pf_A        !! Phase-field Gibbs-Thomson parameter
     real :: pf_eps      !! Phase-field interface thickness
@@ -22,9 +21,9 @@ module afid_phasefield
     real :: pf_Tm       !! Equilibrium melting temperature
     real :: pf_Lambda   !! Dimensionless liquidus slope
 
-    real, allocatable, dimension(:) :: ap3spkr      !! Upper diagonal derivative coefficient for salinity
-    real, allocatable, dimension(:) :: ac3spkr      !! Diagonal derivative coefficient for salinity
-    real, allocatable, dimension(:) :: am3spkr      !! Lower diagonal derivative coefficient for salinity
+    real, allocatable, dimension(:) :: ap3spkr      !! Upper diagonal derivative coefficient for phasefield
+    real, allocatable, dimension(:) :: ac3spkr      !! Diagonal derivative coefficient for phasefield
+    real, allocatable, dimension(:) :: am3spkr      !! Lower diagonal derivative coefficient for phasefield
 
     real :: pf_direct_force = 0.9      !! phi contour above which velocity is forced exactly to zero pre-pressure solve
 
@@ -35,8 +34,6 @@ subroutine InitPFVariables
 
     ! Main array with ghost cells
     call AllocateReal3DArray(phi,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
-    ! Refined temperature array
-    call AllocateReal3DArray(tempr,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
 
     ! Arrays without ghost cells
     call AllocateReal3DArray(ruphi,1,nxr,xstartr(2),xendr(2),xstartr(3),xendr(3))
@@ -58,6 +55,7 @@ subroutine DeallocatePFVariables
     ! Main array
     call DestroyReal3DArray(phi)
 
+    !!!! check this stuff, may need to be placed somewhere else !!!!
     ! Array for refined temperature
     call DestroyReal3DArray(tempr)
 
@@ -177,29 +175,55 @@ subroutine set_temperature_interface(h0, diffuse_above)
     ! x=0 at t=0
     t0 = PecT*(h0/2.0/Lambda)**2
 
-    do i=xstart(3),xend(3)
-        do j=xstart(2),xend(2)
-            do k=1,nxm
-                if (diffuse_above) then
-                    !! For the 1D supercooling example
-                    if (xm(k) > h0) then
-                        temp(k,j,i) = erfc(xm(k)*sqrt(pect/t0)/2.0)/erfc(Lambda)
-                    else
-                        temp(k,j,i) = 1.0
-                    end if
-                else
-                    !! For the 1D freezing example
-                    if (xm(k) < h0) then
-                        temp(k,j,i) = erf(xm(k)*sqrt(pect/t0)/2)/erf(Lambda)
-                    else
-                        temp(k,j,i) = 1.0
-                    end if
-                    !! For the 1D melting case
-                    if (RayT > 0) temp(k,j,i) = 1.0 - temp(k,j,i)
-                end if
+    if (multires_T) then
+            do i=xstartr(3),xendr(3)
+                do j=xstartr(2),xendr(2)
+                    do k=1,nxmr
+                        if (diffuse_above) then
+                            !! For the 1D supercooling example
+                            if (xmr(k) > h0) then
+                                tempr(k,j,i) = erfc(xmr(k)*sqrt(pect/t0)/2.0)/erfc(Lambda)
+                            else
+                                tempr(k,j,i) = 1.0
+                            end if
+                        else
+                            !! For the 1D freezing example
+                            if (xmr(k) < h0) then
+                                tempr(k,j,i) = erf(xmr(k)*sqrt(pect/t0)/2)/erf(Lambda)
+                            else
+                                tempr(k,j,i) = 1.0
+                            end if
+                            !! For the 1D melting case
+                            if (RayT > 0) tempr(k,j,i) = 1.0 - tempr(k,j,i)
+                        end if
+                    end do
+                end do
             end do
-        end do
-    end do
+    else
+            do i=xstart(3),xend(3)
+                do j=xstart(2),xend(2)
+                    do k=1,nxm
+                        if (diffuse_above) then
+                            !! For the 1D supercooling example
+                            if (xm(k) > h0) then
+                                temp(k,j,i) = erfc(xm(k)*sqrt(pect/t0)/2.0)/erfc(Lambda)
+                            else
+                                temp(k,j,i) = 1.0
+                            end if
+                        else
+                            !! For the 1D freezing example
+                            if (xm(k) < h0) then
+                                temp(k,j,i) = erf(xm(k)*sqrt(pect/t0)/2)/erf(Lambda)
+                            else
+                                temp(k,j,i) = 1.0
+                            end if
+                            !! For the 1D melting case
+                            if (RayT > 0) temp(k,j,i) = 1.0 - temp(k,j,i)
+                        end if
+                    end do
+                end do
+            end do           
+    end if
 end subroutine set_temperature_interface
 
 !> Set temperature and salinity profiles to a diffusive boundary layer below
@@ -223,17 +247,31 @@ subroutine set_multicomponent_interface(x0, h0)
             end do
         end do
     end do
-    do i=xstart(3),xend(3)
-        do j=xstart(2),xend(2)
-            do k=1,nxm
-                if (xm(k) <= h0) then
-                    temp(k,j,i) = 1 - A*erfc((x0 - xm(k))/sqrt(t0)/2.0)
-                else
-                    temp(k,j,i) = 1 - A*erfc(-alpha)
-                end if
+    if (multires_T) then            
+            do i=xstartr(3),xendr(3)
+                do j=xstartr(2),xendr(2)
+                    do k=1,nxmr
+                        if (xmr(k) <= h0) then
+                            tempr(k,j,i) = 1 - A*erfc((x0 - xmr(k))/sqrt(t0)/2.0)
+                        else
+                            tempr(k,j,i) = 1 - A*erfc(-alpha)
+                        end if
+                    end do
+                end do
             end do
-        end do
-    end do
+    else
+            do i=xstart(3),xend(3)
+                do j=xstart(2),xend(2)
+                    do k=1,nxm
+                        if (xm(k) <= h0) then
+                            temp(k,j,i) = 1 - A*erfc((x0 - xm(k))/sqrt(t0)/2.0)
+                        else
+                            temp(k,j,i) = 1 - A*erfc(-alpha)
+                        end if
+                    end do
+                end do
+            end do           
+    end if
 end subroutine set_multicomponent_interface
 
 !> Add a modal perturbation to the temperature field in the lower half of the domain
@@ -247,30 +285,55 @@ subroutine add_temperature_mode(amp, ymode, zmode, h0)
     real, intent(in) :: h0          !! initial interface height
     integer :: i, j, k
     real :: xxx, yyy, zzz
-
-    do i=xstart(3),xend(3)
-        zzz = zm(i)/zlen
-        do j=xstart(2),xend(2)
-            yyy = ym(j)/ylen
-            if (nzm > 1) then
-                do k=1,nxm ! If domain 3D, add in z perturbation too
-                    xxx = xm(k)
-                    if (xxx < h0) then
-                        temp(k,j,i) = temp(k,j,i) &
-                            + amp*sin(2.0*pi*ymode*yyy)*cos(2.0*pi*zmode*zzz)*sin(pi*xxx/h0)**2
+    if (multires_T) then
+            do i=xstartr(3),xendr(3)
+                zzz = zmr(i)/zlen
+                do j=xstartr(2),xendr(2)
+                    yyy = ymr(j)/ylen
+                    if (nzmr > 1) then
+                        do k=1,nxmr ! If domain 3D, add in z perturbation too
+                            xxx = xmr(k)
+                            if (xxx < h0) then
+                                tempr(k,j,i) = tempr(k,j,i) &
+                                    + amp*sin(2.0*pi*ymode*yyy)*cos(2.0*pi*zmode*zzz)*sin(pi*xxx/h0)**2
+                            end if
+                        end do
+                    else
+                        do k=1,nxmr
+                            xxx = xmr(k)
+                            if (xxx < h0) then
+                                tempr(k,j,i) = tempr(k,j,i) &
+                                    + amp*sin(4.0*pi*yyy)*((sin(2.0*pi*xxx))**2)
+                            end if
+                        end do
                     end if
                 end do
-            else
-                do k=1,nxm
-                    xxx = xm(k)
-                    if (xxx < h0) then
-                        temp(k,j,i) = temp(k,j,i) &
-                            + amp*sin(4.0*pi*yyy)*((sin(2.0*pi*xxx))**2)
+            end do
+    else
+            do i=xstart(3),xend(3)
+                zzz = zm(i)/zlen
+                do j=xstart(2),xend(2)
+                    yyy = ym(j)/ylen
+                    if (nzm > 1) then
+                        do k=1,nxm ! If domain 3D, add in z perturbation too
+                            xxx = xm(k)
+                            if (xxx < h0) then
+                                temp(k,j,i) = temp(k,j,i) &
+                                    + amp*sin(2.0*pi*ymode*yyy)*cos(2.0*pi*zmode*zzz)*sin(pi*xxx/h0)**2
+                            end if
+                        end do
+                    else
+                        do k=1,nxm
+                            xxx = xm(k)
+                            if (xxx < h0) then
+                                temp(k,j,i) = temp(k,j,i) &
+                                    + amp*sin(4.0*pi*yyy)*((sin(2.0*pi*xxx))**2)
+                            end if
+                        end do
                     end if
                 end do
-            end if
-        end do
-    end do
+            end do           
+    end if
 end subroutine add_temperature_mode
 
 !> Add an ice disc at the centre of the domain of radius r0
@@ -283,14 +346,25 @@ subroutine set_ice_disc(r0)
     integer :: i, j, k
 
     ! Temperature field (0 in disc, 1 out of disc, tanh interface width approx 1e-2)
-    do i=xstart(3),xend(3)
-        do j=xstart(2),xend(2)
-            do k=1,nxm
-                r = sqrt((xm(k) - 0.5*alx3)**2 + (ym(j) - 0.5*ylen)**2)
-                temp(k,j,i) = 0.5*(1.0 + tanh(100.0*(r - r0)))
+    if (multires_T) then            
+            do i=xstartr(3),xendr(3)
+                do j=xstartr(2),xendr(2)
+                    do k=1,nxmr
+                        r = sqrt((xmr(k) - 0.5*alx3)**2 + (ymr(j) - 0.5*ylen)**2)
+                        tempr(k,j,i) = 0.5*(1.0 + tanh(100.0*(r - r0)))
+                    end do
+                end do
             end do
-        end do
-    end do
+    else
+            do i=xstart(3),xend(3)
+                do j=xstart(2),xend(2)
+                    do k=1,nxm
+                        r = sqrt((xm(k) - 0.5*alx3)**2 + (ym(j) - 0.5*ylen)**2)
+                        temp(k,j,i) = 0.5*(1.0 + tanh(100.0*(r - r0)))
+                    end do
+                end do
+            end do           
+    end if
     ! Phase-field (0 out of disc, 1 in disc)
     do i=xstartr(3),xendr(3)
         do j=xstartr(2),xendr(2)
@@ -312,19 +386,35 @@ subroutine set_ice_sphere(r0)
     integer :: i, j, k
 
     ! Temperature field (0 in disc, 1 out of disc, tanh interface width approx 1e-2)
-    do i=xstart(3),xend(3)
-        do j=xstart(2),xend(2)
-            do k=1,nxm
-                r = sqrt((xm(k) - 0.5*alx3)**2 + (ym(j) - 0.5*ylen)**2 + (zm(i) - 0.5*zlen)**2)
-                ! temp(k,j,i) = 0.5*(1.0 + tanh(100.0*(r - r0)))
-                if (r > r0) then
-                    temp(k,j,i) = 1.0
-                else
-                    temp(k,j,i) = 0.0
-                end if
+    if (multires_T) then
+            do i=xstartr(3),xendr(3)
+                do j=xstartr(2),xendr(2)
+                    do k=1,nxmr
+                        r = sqrt((xmr(k) - 0.5*alx3)**2 + (ymr(j) - 0.5*ylen)**2 + (zmr(i) - 0.5*zlen)**2)
+                        ! temp(k,j,i) = 0.5*(1.0 + tanh(100.0*(r - r0)))
+                        if (r > r0) then
+                            tempr(k,j,i) = 1.0
+                        else
+                            tempr(k,j,i) = 0.0
+                        end if
+                    end do
+                end do
             end do
-        end do
-    end do
+    else
+            do i=xstart(3),xend(3)
+                do j=xstart(2),xend(2)
+                    do k=1,nxm
+                        r = sqrt((xm(k) - 0.5*alx3)**2 + (ym(j) - 0.5*ylen)**2 + (zm(i) - 0.5*zlen)**2)
+                        ! temp(k,j,i) = 0.5*(1.0 + tanh(100.0*(r - r0)))
+                        if (r > r0) then
+                            temp(k,j,i) = 1.0
+                        else
+                            temp(k,j,i) = 0.0
+                        end if
+                    end do
+                end do
+            end do           
+    end if
     ! Phase-field (0 out of disc, 1 in disc)
     do i=xstartr(3),xendr(3)
         do j=xstartr(2),xendr(2)
@@ -490,6 +580,40 @@ subroutine InterpPhiMultigrid
     end if
 
 end subroutine InterpPhiMultigrid
+
+!> Interpolate the Temperature field onto the coarse grid
+subroutine InterpTempMultigridr
+    use local_arrays, only: temp     
+    integer  :: icr,jcr,kcr
+
+    ! Set coarse phase-field array to zero
+    temp(:,:,:) = 0.d0
+
+    ! Construct temporary array with extended range for interpolation
+    ! (using dphi/dx = 0 BC)
+    tpdvr(:,:,:) = 0.d0
+
+    do icr=xstartr(3)-lvlhalo,xendr(3)+lvlhalo
+        do jcr=xstartr(2)-lvlhalo,xendr(2)+lvlhalo
+            do kcr=1,nxmr
+                tpdvr(kcr,jcr,icr) = tempr(kcr,jcr,icr)
+            end do
+            if (TfixS==1) then
+                tpdvr(0,jcr,icr) = 2.0*tempbp(1,jcr,icr) - tempr(1,jcr,icr)
+            else
+                tpdvr(0,jcr,icr) = tempr(1,jcr,icr)
+            end if
+            if (TfixN==1) then
+                tpdvr(nxr,jcr,icr) = 2.0*temptp(1,jcr,icr) - tempr(nxmr,jcr,icr)
+            else
+                tpdvr(nxr,jcr,icr) = tempr(nxmr,jcr,icr)
+            end if
+        end do
+    end do
+
+    call interpolate_xyz_to_coarse(tpdvr, temp(1:nxm,:,:))
+
+end subroutine InterpTempMultigridr
 
 !> Interpolate the temperature field onto the refined grid
 !! for calculation of nonlinear terms in phase-field equation
@@ -720,6 +844,22 @@ subroutine AddLatentHeat
     end if
 end subroutine AddLatentHeat
 
+!! Add latent heat for multi-resolution temperature option
+subroutine AddLatentHeatr
+    integer :: ic,jc,kc
+    real :: aldt
+
+    aldt = 1.0/al/dt
+
+    do ic=xstartr(3),xendr(3)
+        do jc=xstartr(2),xendr(2)
+            do kc=1,nxmr
+                hror(kc,jc,ic) = hror(kc,jc,ic) + pf_S*rhsr(kc,jc,ic)*aldt
+            end do
+        end do
+    end do
+end subroutine AddLatentHeatr
+
 !> Add "latent salt" term to the RK forcing array for salinity (hsal),
 !! having calculated d/dt(phi) from the implicit solve and stored it in rhsr
 subroutine AddLatentSalt
@@ -812,6 +952,74 @@ subroutine CreatePhaseH5Groups(filename)
     call h5fclose_f(file_id, hdf_error)
 
 end subroutine CreatePhaseH5Groups
+
+subroutine CalcMultiTempStats
+
+    real, dimension(nxmr) :: Trbar    !! Horizontally-averaged tempr-field variable
+    real, dimension(nxmr) :: Trrms    !! Horizontally-averaged rms tempr-field
+
+    real :: inyzm   !! 1.0/nymr/nzmr
+
+    character(30) :: dsetname   !! Dataset name for HDF5 file
+    character(30) :: filename   !! HDF5 file name for statistic storage
+    character( 5) :: nstat      !! Character string of statistic index
+
+    integer :: i, j, k
+
+    inyzm = 1.0/nymr/nzmr
+
+    filename = trim("outputdir/means.h5")
+
+    Trbar(:) = 0.0;    Trrms(:) = 0.0;
+
+    do i=xstartr(3),xendr(3)
+        do j=xstartr(2),xendr(2)
+            do k=1,nxmr
+                Trbar(k) = Trbar(k) + tempr(k,j,i)
+                Trrms(k) = Trrms(k) + tempr(k,j,i)**2
+            end do
+        end do
+    end do
+
+    call MpiSumReal1D(Trbar,nxmr)
+    call MpiSumReal1D(Trrms,nxmr)
+
+    do k=1,nxmr
+        Trbar(k) = Trbar(k)*inyzm
+        Trrms(k) = sqrt(Trrms(k)*inyzm)
+    end do
+
+    ! Store index as character string
+    write(nstat,"(i5.5)")nint(time/tout)
+
+    if (ismaster) then
+        dsetname = trim("Trbar/"//nstat)
+        call HdfSerialWriteReal1D(dsetname, filename, Trbar, nxmr)
+        dsetname = trim("Trrms/"//nstat)
+        call HdfSerialWriteReal1D(dsetname, filename, Trrms, nxmr)
+    end if
+
+    call MpiBarrier
+
+end subroutine CalcMultiTempStats
+
+subroutine CreateMultiTempH5Groups(filename)
+    use HDF5
+
+    character(30), intent(in) :: filename
+    integer(HID_T) :: file_id, group_id
+    integer :: hdf_error
+
+    call h5fopen_f(filename, H5F_ACC_RDWR_F, file_id, hdf_error)
+
+    call h5gcreate_f(file_id, "Trbar", group_id, hdf_error)
+    call h5gclose_f(group_id, hdf_error)
+    call h5gcreate_f(file_id, "Trrms", group_id, hdf_error)
+    call h5gclose_f(group_id, hdf_error)
+
+    call h5fclose_f(file_id, hdf_error)
+       
+end subroutine CreateMultiTempH5Groups
 
 !> Implicit solve for vx when using direct forcing constraint
 subroutine SolveImpEqnUpdate_X_pf

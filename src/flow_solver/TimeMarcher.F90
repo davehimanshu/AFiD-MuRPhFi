@@ -13,7 +13,7 @@
 subroutine TimeMarcher
     use param
     use local_arrays
-    ! use mgrd_arrays, only: vxr,vyr,vzr,salc,sal,phi,phic,tempr
+    use mgrd_arrays, only: vxr,vyr,vzr,tempr
     use afid_pressure
     use afid_salinity
     use afid_phasefield
@@ -45,7 +45,11 @@ subroutine TimeMarcher
         call ExplicitTermsVX
         call ExplicitTermsVY
         call ExplicitTermsVZ
-        call ExplicitTermsTemp
+        if (multires_T) then
+                call ExplicitTermsTempr
+        else
+                call ExplicitTermsTemp
+        end if
 
         if (salinity) then
             call ExplicitSalinity
@@ -72,7 +76,8 @@ subroutine TimeMarcher
            end if
            if (pfield_a) call ImplicitPhase
             ! Add the latent heat and salt terms *after* computing the implicit solve for phi
-           if (pfield_a) call AddLatentHeat
+           if (pfield_a .and. multires_T) call AddLatentHeatr
+           if (pfield_a .and. .not. multires_T) call AddLatentHeat
            if (salinity) call AddLatentSalt
         end if
 
@@ -90,8 +95,11 @@ subroutine TimeMarcher
         call ImplicitAndUpdateVX
         call ImplicitAndUpdateVY
         call ImplicitAndUpdateVZ
-        call ImplicitAndUpdateTemp
-
+        if (multires_T) then
+                call ImplicitAndUpdateTempr
+        else
+                call ImplicitAndUpdateTemp
+        end if
         if (salinity) call ImplicitSalinity
 
         if (moist) call ImplicitHumidity
@@ -130,40 +138,62 @@ subroutine TimeMarcher
         call update_halo(vy,lvlhalo)
         call update_halo(vz,lvlhalo)
         call update_halo(pr,lvlhalo)
-        call update_halo(temp,lvlhalo)
+        if (multires_T) then
+                call update_halo(tempr,lvlhalo)
+        else
+                call update_halo(temp,lvlhalo)
+        end if
         if (salinity) call update_halo(sal,lvlhalo)
         if (phasefield) call update_halo(phi,lvlhalo)
         if (moist) call update_halo(humid,lvlhalo)
 
-        if (salinity) then
+        if (salinity .or. multires_T) then
             call InterpVelMgrd !Vel from base mesh to refined mesh
             call update_halo(vxr,lvlhalo)
             call update_halo(vyr,lvlhalo)
             call update_halo(vzr,lvlhalo)
+        end if
+
+        if (salinity) then
             call InterpSalMultigrid !Sal from refined mesh to base mesh
             call update_halo(salc,lvlhalo)
         end if
 
-        if (phasefield) then
-            call InterpTempMultigrid
-            call update_halo(tempr,lvlhalo)
+        if (multires_T) then
+            if (phasefield .and. .not. pfield_a) then
+               do i = xstartr(3), xendr(3)
+                do j = xstartr(2), xendr(2)
+                 do k = 1, nxmr
+                        if (phi(k,j,i) > 0.1) then
+                        tempr(k,j,i) = 0.0
+                        end if
+                 end do
+                end do
+               end do
+            end if
+            call update_halo(tempr,lvlhalo)    
+            call interpTempMultigridr
+            call update_halo(temp,lvlhalo)
+        end if
+
+        if (phasefield) then    
             call InterpPhiMultigrid
             call update_halo(phic,lvlhalo)
-            if (.not.pfield_a) then
+            if (.not. pfield_a) then
                do i = xstart(3), xend(3)
                 do j = xstart(2), xend(2)
                  do k = 1, nxm
                         if (phic(k,j,i) > 0.1) then
-                           temp(k,j,i) = 0.0
+                        temp(k,j,i) = 0.0
                         end if
                  end do
                 end do
                end do
             end if
             call update_halo(temp,lvlhalo)
-            call InterpTempMultigrid
-            call update_halo(tempr,lvlhalo)
-
+       
+            if (.not. multires_T) call InterpTempMultigrid
+            if (.not. multires_T) call update_halo(tempr,lvlhalo)
         end if
 
         if (moist) call UpdateSaturation

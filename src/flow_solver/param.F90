@@ -30,6 +30,7 @@ module param
     real      :: h0 ! Initial interface height
     real      :: f_amp ! fluctuations amplitude
     integer   :: ymode,zmode ! modes in each horizontal direction
+    integer   :: mgrd_T ! 
     !=================================================
     !       end of input file
     !=================================================
@@ -96,6 +97,7 @@ module param
     logical :: salinity=.false.
     logical :: specwrite=.false.
     logical :: pfield_a=.false.
+    logical :: multires_T=.false.
 
     integer :: lvlhalo=2
 
@@ -130,6 +132,11 @@ module mgrd_arrays
     real,allocatable,dimension(:,:,:) :: tpdv,tpdvr  !CS mgrd
     real,allocatable,dimension(:,:,:) :: Tplaner
     real,allocatable,dimension(:,:) :: solid_height, height_vx, height_vy, height_vz
+    real, allocatable, dimension(:,:,:) :: vxr      !! Velocity interpolated to refined grid (x component)
+    real, allocatable, dimension(:,:,:) :: vyr      !! Velocity interpolated to refined grid (y component)
+    real, allocatable, dimension(:,:,:) :: vzr      !! Velocity interpolated to refined grid (z component)
+    real, allocatable, dimension(:,:,:) :: tempr    !! Temperature field on refined grid
+    real, allocatable, dimension(:,:,:) :: hror, rutempr !! Temporary array structures for the multiple resolution temperature field
 end module mgrd_arrays
 !===============================================================
 module stat_arrays

@@ -148,8 +148,13 @@ subroutine ReadFlowInterp(prow,pcol)
                                 xstart(3), xend(3), 2, vy)
         call HdfReadContinua(nz, ny, nx, xstart(2), xend(2), &
                                 xstart(3), xend(3), 3, vz)
-        call HdfReadContinua(nz, ny, nx, xstart(2), xend(2), &
-                                xstart(3), xend(3), 4, temp)
+        if (multires_T) then
+                call HdfReadContinua(nzr, nyr, nxr, xstartr(2), xendr(2), &
+                                        xstartr(3), xendr(3), 4, tempr)
+        else
+                call HdfReadContinua(nz, ny, nx, xstart(2), xend(2), &
+                                        xstart(3), xend(3), 4, temp)
+        end if
         if (salinity) then
             call HdfReadContinua(nzr, nyr, nxr, xstartr(2), xendr(2), &
                                 xstartr(3), xendr(3), 5, sal)

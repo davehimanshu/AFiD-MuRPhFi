@@ -162,5 +162,9 @@ subroutine CreateMgrdGrid
     ! Phase-field differentiation (ensuring zero gradient at boundaries)
     if (phasefield) call second_derivative_coeff(ap3spkr, ac3spkr, am3spkr, xmr(1:nxmr), alx3, 0, 0)
 
+    if (multires_T) then
+        call second_derivative_coeff(ap3ssk, ac3ssk, am3ssk, xmr(1:nxmr), alx3, TfixN, TfixS)
+    end if
+
     return
 end subroutine CreateMgrdGrid

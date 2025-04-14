@@ -89,6 +89,10 @@ subroutine ReadInputFile
         read(io,301) dummy
         read(io,301) dummy
         read(io,*) h0
+        read(io,301) dummy
+        read(io,301) dummy
+        read(io,301) dummy
+        read(io,*) mgrd_T
 301     format(a4)
     close(io)
 
@@ -113,6 +117,7 @@ subroutine ReadInputFile
     if(flagPF.ne.0) phasefield = .true.
     if(flagsal.ne.0) salinity = .true.
     if(I_advect.ne.0) pfield_a = .true.
+    if(mgrd_T.ne.0) multires_T = .true.
 
     ! if(starea.ne.0) then 
     !   readstats = .true.

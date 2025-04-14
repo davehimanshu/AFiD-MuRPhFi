@@ -11,7 +11,8 @@
 subroutine CreateInitialConditions
     use param
     use local_arrays, only: vy,vx,temp,vz
-    use decomp_2d, only: xstart,xend
+    use mgrd_arrays, only: tempr
+    use decomp_2d, only: xstart,xend,xstartr,xendr
     use mpih
     use afid_salinity, only: RayS
     use afid_phasefield, only: pf_eps, read_phase_field_params, pf_Tm
@@ -160,112 +161,228 @@ subroutine CreateInitialConditions
         end do
     end if
 
-    if ((RayT < 0) .and. (RayS < 0)) then
-        !CJH: Stratified shear layer + noise in centre
-        eps = 1e-2
-        do i=xstart(3),xend(3)
-            do j=xstart(2),xend(2)
-                do k=1,nxm
-                    temp(k,j,i) = tanh(xm(k) - 0.5*alx3)
-                    call random_number(varptb)
-                    temp(k,j,i) = temp(k,j,i) + &
-                            cosh(xm(k) - 0.5*alx3)**(-2)*eps*(2.0*varptb - 1.0)
-                end do
-            end do
-        end do
-    else
-        ! Assign linear temperature profile in the nodes k=1 to k=nxm
-        do i=xstart(3),xend(3)
-            do j=xstart(2),xend(2)
-                do k=1,nxm
-                    xxx = xm(k)
-                    temp(k,j,i) = tempbp(1,j,i) + (temptp(1,j,i) - tempbp(1,j,i))*xm(k)/alx3
-                end do
-            end do
-        end do
 
-        ! Add noise in the temperature profile
-        eps = 1e-3
-        do i=xstart(3),xend(3)
-            do j=xstart(2),xend(2)
-                do k=1,nxm
-                    call random_number(varptb)
-                    if (abs(xm(k)-0.5) + eps > 0.5) then
-                        amp = 0.5 - abs(xm(k)-0.5) ! CJH Prevent values of |T| exceeding 0.5
-                        temp(k,j,i) = temp(k,j,i) + amp*(2.d0*varptb - 1.d0)
-                    else
-                    temp(k,j,i) = temp(k,j,i) + eps*(2.d0*varptb - 1.d0)
-                    end if
+
+    if (multires_T) then
+
+             if ((RayT < 0) .and. (RayS < 0)) then
+                !CJH: Stratified shear layer + noise in centre
+                eps = 1e-2
+                do i=xstartr(3),xendr(3)
+                    do j=xstartr(2),xendr(2)
+                        do k=1,nxmr
+                            tempr(k,j,i) = tanh(xmr(k) - 0.5*alx3)
+                            call random_number(varptb)
+                            tempr(k,j,i) = tempr(k,j,i) + &
+                                    cosh(xmr(k) - 0.5*alx3)**(-2)*eps*(2.0*varptb - 1.0)
+                        end do
+                    end do
                 end do
-            end do
-        end do
+            else
+                ! Assign linear temperature profile in the nodes k=1 to k=nxm
+                do i=xstartr(3),xendr(3)
+                    do j=xstartr(2),xendr(2)
+                        do k=1,nxmr
+                            xxx = xmr(k)
+                            tempr(k,j,i) = tempbp(1,j,i) + (temptp(1,j,i) - tempbp(1,j,i))*xmr(k)/alx3
+                        end do
+                    end do
+                end do
+        
+                ! Add noise in the temperature profile
+                eps = 1e-3
+                do i=xstartr(3),xendr(3)
+                    do j=xstartr(2),xendr(2)
+                        do k=1,nxmr
+                            call random_number(varptb)
+                            if (abs(xmr(k)-0.5) + eps > 0.5) then
+                                amp = 0.5 - abs(xmr(k)-0.5) ! CJH Prevent values of |T| exceeding 0.5
+                                tempr(k,j,i) = tempr(k,j,i) + amp*(2.d0*varptb - 1.d0)
+                            else
+                            tempr(k,j,i) = tempr(k,j,i) + eps*(2.d0*varptb - 1.d0)
+                            end if
+                        end do
+                    end do
+                end do
+            end if
+           
+    else
+
+            if ((RayT < 0) .and. (RayS < 0)) then
+                !CJH: Stratified shear layer + noise in centre
+                eps = 1e-2
+                do i=xstart(3),xend(3)
+                    do j=xstart(2),xend(2)
+                        do k=1,nxm
+                            temp(k,j,i) = tanh(xm(k) - 0.5*alx3)
+                            call random_number(varptb)
+                            temp(k,j,i) = temp(k,j,i) + &
+                                    cosh(xm(k) - 0.5*alx3)**(-2)*eps*(2.0*varptb - 1.0)
+                        end do
+                    end do
+                end do
+            else
+                ! Assign linear temperature profile in the nodes k=1 to k=nxm
+                do i=xstart(3),xend(3)
+                    do j=xstart(2),xend(2)
+                        do k=1,nxm
+                            xxx = xm(k)
+                            temp(k,j,i) = tempbp(1,j,i) + (temptp(1,j,i) - tempbp(1,j,i))*xm(k)/alx3
+                        end do
+                    end do
+                end do
+        
+                ! Add noise in the temperature profile
+                eps = 1e-3
+                do i=xstart(3),xend(3)
+                    do j=xstart(2),xend(2)
+                        do k=1,nxm
+                            call random_number(varptb)
+                            if (abs(xm(k)-0.5) + eps > 0.5) then
+                                amp = 0.5 - abs(xm(k)-0.5) ! CJH Prevent values of |T| exceeding 0.5
+                                temp(k,j,i) = temp(k,j,i) + amp*(2.d0*varptb - 1.d0)
+                            else
+                            temp(k,j,i) = temp(k,j,i) + eps*(2.d0*varptb - 1.d0)
+                            end if
+                        end do
+                    end do
+                end do
+            end if
+
     end if
 
+
+
+
     if (gAxis==3 .and. active_T==0) then
-        do i=xstart(3),xend(3)
-            do j=xstart(2),xend(2) ! Convergence test
-                do k=1,nxm
-                    xxx = xm(k) ! Linear profile + sin perturbation
-                    temp(k,j,i) = tempbp(1,j,i) + (temptp(1,j,i) - tempbp(1,j,i))*xm(k)/alx3
-                    temp(k,j,i) = temp(k,j,i) + sin(2.0*pi*xxx/alx3) - sin(6.0*pi*xxx/alx3)
+        if (multires_T) then
+                do i=xstartr(3),xendr(3)
+                    do j=xstartr(2),xendr(2) ! Convergence test
+                        do k=1,nxmr
+                            xxx = xmr(k) ! Linear profile + sin perturbation
+                            tempr(k,j,i) = tempbp(1,j,i) + (temptp(1,j,i) - tempbp(1,j,i))*xmr(k)/alx3
+                            tempr(k,j,i) = tempr(k,j,i) + sin(2.0*pi*xxx/alx3) - sin(6.0*pi*xxx/alx3)
+                        end do
+                    end do
                 end do
-            end do
-        end do
+        else
+                do i=xstart(3),xend(3)
+                    do j=xstart(2),xend(2) ! Convergence test
+                        do k=1,nxm
+                            xxx = xm(k) ! Linear profile + sin perturbation
+                            temp(k,j,i) = tempbp(1,j,i) + (temptp(1,j,i) - tempbp(1,j,i))*xm(k)/alx3
+                            temp(k,j,i) = temp(k,j,i) + sin(2.0*pi*xxx/alx3) - sin(6.0*pi*xxx/alx3)
+                        end do
+                    end do
+                end do
+        end if
     end if
 
     if (gAxis==2 .and. inslwN==0) then  ! Ke et al comparison case
         t0 = 1.4195567
-        do i=xstart(3),xend(3)
-            do j=xstart(2),xend(2)
-                do k=1,nxm
-                    amp = 0.0
-                    do kmid=0,7
-                        amp = amp + sin(2.0**kmid * 2.0*pi*ym(j)/ylen)
+        if (multires_T) then                
+                do i=xstartr(3),xendr(3)
+                    do j=xstartr(2),xendr(2)
+                        do k=1,nxmr
+                            amp = 0.0
+                            do kmid=0,7
+                                amp = amp + sin(2.0**kmid * 2.0*pi*ymr(j)/ylen)
+                            end do
+                            amp = 1.0 + 1e-3*amp + 1e-3*sin(46.0*pi*zmr(i)/zlen)
+                            tempr(k,j,i) = amp*erfc(xmr(k)/2*sqrt(pect/t0))
+                        end do
                     end do
-                    amp = 1.0 + 1e-3*amp + 1e-3*sin(46.0*pi*zm(i)/zlen)
-                    temp(k,j,i) = amp*erfc(xm(k)/2*sqrt(pect/t0))
                 end do
-            end do
-        end do
+        else
+                 do i=xstart(3),xend(3)
+                    do j=xstart(2),xend(2)
+                        do k=1,nxm
+                            amp = 0.0
+                            do kmid=0,7
+                                amp = amp + sin(2.0**kmid * 2.0*pi*ym(j)/ylen)
+                            end do
+                            amp = 1.0 + 1e-3*amp + 1e-3*sin(46.0*pi*zm(i)/zlen)
+                            temp(k,j,i) = amp*erfc(xm(k)/2*sqrt(pect/t0))
+                        end do
+                    end do
+                end do
+               
+        end if
     end if
 
     if (IBM .and. dPdy/=0) then
-        do i=xstart(3),xend(3)
-            do j=xstart(2),xend(2)
-                do k=1,nxm
-                    temp(k,j,i) = 0.0
+        if (multires_T) then                
+                do i=xstartr(3),xendr(3)
+                    do j=xstartr(2),xendr(2)
+                        do k=1,nxmr
+                            tempr(k,j,i) = 0.0
+                        end do
+                    end do
                 end do
-            end do
-        end do
+        else
+                do i=xstart(3),xend(3)
+                    do j=xstart(2),xend(2)
+                        do k=1,nxm
+                            temp(k,j,i) = 0.0
+                        end do
+                    end do
+                end do               
+        end if
     end if
 
     if (moist) then
-        do i=xstart(3),xend(3)
-            do j=xstart(2),xend(2)
-                do k=1,nxm
-                    temp(k,j,i) = 0.0
+        if (multires_T) then                
+                do i=xstartr(3),xendr(3)
+                    do j=xstartr(2),xendr(2)
+                        do k=1,nxmr
+                            tempr(k,j,i) = 0.0
+                        end do
+                    end do
                 end do
-            end do
-        end do
+        else
+                do i=xstart(3),xend(3)
+                    do j=xstart(2),xend(2)
+                        do k=1,nxm
+                            temp(k,j,i) = 0.0
+                        end do
+                    end do
+                end do               
+        end if
     end if
 
     if (phasefield) then
         ! Most of this is now in `afid_phasefield` in the routine `CreateInitialPhase`
 
         if (pf_IC==3) then
-            do i=xstart(3),xend(3)
-                do j=xstart(2),xend(2)
-                    do k=1,nxm
-                        xxx = xm(k)
-                        ! Piecewise linear base profile for Purseed et al
-                        if (xxx < h0) then
-                            temp(k,j,i) = 1.0 - (1.0 - pf_Tm)*xxx/h0
-                        else
-                            temp(k,j,i) = pf_Tm*(1.0 - xxx)/(1.0 - h0)
-                        end if
+            if (multires_T) then
+                    do i=xstartr(3),xendr(3)
+                        do j=xstartr(2),xendr(2)
+                            do k=1,nxmr
+                                xxx = xmr(k)
+                                ! Piecewise linear base profile for Purseed et al
+                                if (xxx < h0) then
+                                    tempr(k,j,i) = 1.0 - (1.0 - pf_Tm)*xxx/h0
+                                else
+                                    tempr(k,j,i) = pf_Tm*(1.0 - xxx)/(1.0 - h0)
+                                end if
+                            end do
+                        end do
                     end do
-                end do
-            end do
+            else
+                    do i=xstart(3),xend(3)
+                        do j=xstart(2),xend(2)
+                            do k=1,nxm
+                                xxx = xm(k)
+                                ! Piecewise linear base profile for Purseed et al
+                                if (xxx < h0) then
+                                    temp(k,j,i) = 1.0 - (1.0 - pf_Tm)*xxx/h0
+                                else
+                                    temp(k,j,i) = pf_Tm*(1.0 - xxx)/(1.0 - h0)
+                                end if
+                            end do
+                        end do
+                    end do                   
+            end if
         end if
 
         if (salinity) then
@@ -273,39 +390,70 @@ subroutine CreateInitialConditions
                 call read_phase_field_params(A, B, alpha)
                 t0 = 1e-3
                 x0 = 0.8
-!                h0 = x0 + 2*alpha*sqrt(t0)
-                do i=xstart(3),xend(3)
-                    do j=xstart(2),xend(2)
-                        do k=1,nxm
-                            if (xm(k) <= h0) then
-                                temp(k,j,i) = 1 - A*erfc((x0 - xm(k))/sqrt(t0)/2.0)
-                            else
-                                temp(k,j,i) = 1 - A*erfc(-alpha)
-                            end if
+                if (multires_T) then                        
+                        do i=xstartr(3),xendr(3)
+                            do j=xstartr(2),xendr(2)
+                                do k=1,nxmr
+                                    if (xmr(k) <= h0) then
+                                        tempr(k,j,i) = 1 - A*erfc((x0 - xmr(k))/sqrt(t0)/2.0)
+                                    else
+                                        tempr(k,j,i) = 1 - A*erfc(-alpha)
+                                    end if
+                                end do
+                            end do
                         end do
-                    end do
-                end do
+                else
+                        do i=xstart(3),xend(3)
+                            do j=xstart(2),xend(2)
+                                do k=1,nxm
+                                    if (xm(k) <= h0) then
+                                        temp(k,j,i) = 1 - A*erfc((x0 - xm(k))/sqrt(t0)/2.0)
+                                    else
+                                        temp(k,j,i) = 1 - A*erfc(-alpha)
+                                    end if
+                                end do
+                            end do
+                        end do                      
+                end if
             else if (pf_IC==2) then
                 call read_phase_field_params(A, B, alpha)
                 t0 = 1e-3
-!                h0 = 0.1 - 2*alpha*sqrt(t0)
                 eps = 5e-3
-                do i=xstart(3),xend(3)
-                    do j=xstart(2),xend(2)
-                        do k=1,nxm
-                            call random_number(varptb)
-                            if (abs(ym(j) - ylen/2.0) <= h0) then
-                                temp(k,j,i) = 1.0 - A*erfc(-alpha)
-                            else if (ym(j) < ylen/2.0) then
-                                temp(k,j,i) = 1.0 - A*erfc((ylen/2.0 - h0 - ym(j))/sqrt(t0)/2.0) &
-                                                + eps*(2.d0*varptb - 1.d0)
-                            else
-                                temp(k,j,i) = 1.0 - A*erfc((ym(j) - ylen/2.0 - h0)/sqrt(t0)/2.0) &
-                                + eps*(2.d0*varptb - 1.d0)
-                            end if
+                if (multires_T) then
+                        do i=xstartr(3),xendr(3)
+                            do j=xstartr(2),xendr(2)
+                                do k=1,nxmr
+                                    call random_number(varptb)
+                                    if (abs(ymr(j) - ylen/2.0) <= h0) then
+                                        tempr(k,j,i) = 1.0 - A*erfc(-alpha)
+                                    else if (ymr(j) < ylen/2.0) then
+                                        tempr(k,j,i) = 1.0 - A*erfc((ylen/2.0 - h0 - ymr(j))/sqrt(t0)/2.0) &
+                                                        + eps*(2.d0*varptb - 1.d0)
+                                    else
+                                        tempr(k,j,i) = 1.0 - A*erfc((ymr(j) - ylen/2.0 - h0)/sqrt(t0)/2.0) &
+                                        + eps*(2.d0*varptb - 1.d0)
+                                    end if
+                                end do
+                            end do
                         end do
-                    end do
-                end do
+                else
+                        do i=xstart(3),xend(3)
+                            do j=xstart(2),xend(2)
+                                do k=1,nxm
+                                    call random_number(varptb)
+                                    if (abs(ym(j) - ylen/2.0) <= h0) then
+                                        temp(k,j,i) = 1.0 - A*erfc(-alpha)
+                                    else if (ym(j) < ylen/2.0) then
+                                        temp(k,j,i) = 1.0 - A*erfc((ylen/2.0 - h0 - ym(j))/sqrt(t0)/2.0) &
+                                                        + eps*(2.d0*varptb - 1.d0)
+                                    else
+                                        temp(k,j,i) = 1.0 - A*erfc((ym(j) - ylen/2.0 - h0)/sqrt(t0)/2.0) &
+                                        + eps*(2.d0*varptb - 1.d0)
+                                    end if
+                                end do
+                            end do
+                        end do                       
+                end if
             else if (pf_IC==3) then
                 call read_phase_field_params(A, B, alpha)
                 ! Scallop initial condition
@@ -318,34 +466,59 @@ subroutine CreateInitialConditions
                 x0 = 0.8
                 amp = 0.9
                 eps = 5e-3
-                do i=xstart(3),xend(3)
-                    do j=xstart(2),xend(2)
-!                        h0 = 0.0
-                        do k=1,11
-!                            h0 = max(h0, x0 - amp*((ym(j) - yh(k))**2 + (zm(i) - zh(k))**2))
+                if (multires_T) then
+                        do i=xstartr(3),xendr(3)
+                            do j=xstartr(2),xendr(2)
+                                do k=1,nxmr
+                                    call random_number(varptb)
+                                    if (xmr(k) <= h0) then
+                                        tempr(k,j,i) = 1.0 + eps*(2.d0*varptb - 1.d0)
+                                    else
+                                        tempr(k,j,i) = 1.0 - A*erfc(-alpha)
+                                    end if
+                                end do
+                            end do
                         end do
-                        do k=1,nxm
-                            call random_number(varptb)
-                            if (xm(k) <= h0) then
-                                temp(k,j,i) = 1.0 + eps*(2.d0*varptb - 1.d0)
-                            else
-                                temp(k,j,i) = 1.0 - A*erfc(-alpha)
-                            end if
-                        end do
-                    end do
-                end do
+                else
+                        do i=xstart(3),xend(3)
+                            do j=xstart(2),xend(2)
+                                do k=1,nxm
+                                    call random_number(varptb)
+                                    if (xm(k) <= h0) then
+                                        temp(k,j,i) = 1.0 + eps*(2.d0*varptb - 1.d0)
+                                    else
+                                        temp(k,j,i) = 1.0 - A*erfc(-alpha)
+                                    end if
+                                end do
+                            end do
+                        end do                       
+                end if    
             else
-                kmid = nxm/2
-                do i=xstart(3),xend(3)
-                    do j=xstart(2),xend(2)
-                        do k=1,kmid
-                            temp(k,j,i) = 1.0
+                if (multires_T) then    
+                        kmid = nxmr/2
+                        do i=xstartr(3),xendr(3)
+                            do j=xstartr(2),xendr(2)
+                                do k=1,kmid
+                                    tempr(k,j,i) = 1.0
+                                end do
+                                do k=kmid+1,nxmr
+                                    tempr(k,j,i) = 0.0
+                                end do
+                            end do
                         end do
-                        do k=kmid+1,nxm
-                            temp(k,j,i) = 0.0
+                else
+                        kmid = nxm/2
+                        do i=xstart(3),xend(3)
+                            do j=xstart(2),xend(2)
+                                do k=1,kmid
+                                    temp(k,j,i) = 1.0
+                                end do
+                                do k=kmid+1,nxm
+                                    temp(k,j,i) = 0.0
+                                end do
+                            end do
                         end do
-                    end do
-                end do
+                end if
             end if
         end if
 
@@ -353,15 +526,27 @@ subroutine CreateInitialConditions
 
     if (melt) then
         A = 1.08995
-        do i=xstart(3),xend(3)
-            do j=xstart(2),xend(2)
-                do k=1,nxm
-                    ! call random_number(varptb)
-                    ! temp(k,j,i) = eps*(2.d0*varptb - 1.d0) * exp(-xm(k)/0.1)
-                    temp(k,j,i) = 1.0 - A*erfc(xm(k)*sqrt(pect)/2.0)
+        if (multires_T) then 
+                do i=xstartr(3),xendr(3)
+                    do j=xstartr(2),xendr(2)
+                        do k=1,nxmr
+                            ! call random_number(varptb)
+                            ! temp(k,j,i) = eps*(2.d0*varptb - 1.d0) * exp(-xm(k)/0.1)
+                            tempr(k,j,i) = 1.0 - A*erfc(xmr(k)*sqrt(pect)/2.0)
+                        end do
+                    end do
                 end do
-            end do
-        end do
+        else
+                do i=xstart(3),xend(3)
+                    do j=xstart(2),xend(2)
+                        do k=1,nxm
+                            ! call random_number(varptb)
+                            ! temp(k,j,i) = eps*(2.d0*varptb - 1.d0) * exp(-xm(k)/0.1)
+                            temp(k,j,i) = 1.0 - A*erfc(xm(k)*sqrt(pect)/2.0)
+                        end do
+                    end do
+                end do               
+        end if
     end if
 
     return

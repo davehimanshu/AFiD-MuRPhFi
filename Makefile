@@ -27,7 +27,7 @@ FLAVOUR=GNU
 OBJDIR=obj
 
 ifeq ($(FLAVOUR),GNU)
-	FC = h5pfc -cpp -fdefault-real-8 -fdefault-double-8 -fallow-argument-mismatch
+	FC = h5pfc -cpp -fdefault-real-8 -fdefault-double-8 -fallow-argument-mismatch -g -O0 -fbacktrace
 else
 	FC = h5pfc -fpp -r8
 endif
@@ -128,7 +128,8 @@ OBJS = obj/main.o obj/CalcMaxCFL.o \
 
 # Object files associated with multiple resolution grids
 OBJS += obj/CreateMgrdGrid.o obj/InitMgrdVariables.o \
-	obj/DeallocateMgrdVariables.o obj/CreateMgrdStencil.o
+	obj/DeallocateMgrdVariables.o obj/CreateMgrdStencil.o obj/ExplicitTermsTempr.o \
+	obj/ImplicitAndUpdateTempr.o obj/SolveImpEqnUpdate_Tempr.o obj/SetTempBCrs.o
 
 # Object files associated with initial condition interpolation
 OBJS += obj/CreateNewInputStencil.o obj/CreateOldGrid.o obj/CreateNewSalStencil.o \

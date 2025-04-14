@@ -7,7 +7,7 @@ subroutine InterpInputVel
     use mpih
     use decomp_2d
     use AuxiliaryRoutines
-    use HermiteInterpolations, only: interpolate_xyz_old_to_new
+    use HermiteInterpolations, only: interpolate_xyz_old_to_new, interpolate_xyz_old_to_new_ref
     implicit none
 
     integer  :: ic,jc,kc, ip,jp,kp, icr,jcr,kcr
@@ -295,57 +295,111 @@ subroutine InterpInputVel
 !=========================================================
 !     Interpolation of T
 
-    ! Allocate and read in old T
-    call AllocateReal3DArray(tempo, -1, nxo+1, xstarto(2)-lvlhalo, xendo(2)+lvlhalo, xstarto(3)-lvlhalo, xendo(3)+lvlhalo)
-
-    tempo(:,:,:) = 0.d0
-
-    call HdfReadContinua(nzo, nyo, nxo, xstarto(2), xendo(2), xstarto(3), xendo(3), 4, &
-            tempo(1:nxo, xstarto(2)-lvlhalo:xendo(2)+lvlhalo, xstarto(3)-lvlhalo:xendo(3)+lvlhalo))
-
-    ! Temperature BCs
-    if (RAYT>0) then
-        if (inslwN==0) then ! Single heated wall
-            Tup = 0.0
-            Tlo = 1.0
-        else
-            Tup = -0.5
-            Tlo = 0.5
-        end if
-    else
-        Tup = 0.5
-        Tlo = -0.5
-    end if
-    if (phasefield) then
-        if (RAYT>0) then
-            Tup = 0.0
-            Tlo = 1.0
-        else
-            Tup = 1.0
-            Tlo = 0.0
-        end if
-    end if
-
-    do ic=xstarto(3),xendo(3)
-        do jc=xstarto(2),xendo(2)
-            if (TfixS==1) then
-                tempo(0,jc,ic) = 2.0*Tlo - tempo(1,jc,ic)
+    if (multires_T) then
+            ! Allocate and read in old T
+            call AllocateReal3DArray(tempo, -1, nxro+1, xstarto(2)-lvlhalo, xendo(2)+lvlhalo, xstarto(3)-lvlhalo, xendo(3)+lvlhalo)
+        
+            tempo(:,:,:) = 0.d0
+        
+            call HdfReadContinua(nzro, nyro, nxro, xstarto(2), xendo(2), xstarto(3), xendo(3), 4, &
+                    tempo(1:nxro, xstarto(2)-lvlhalo:xendo(2)+lvlhalo, xstarto(3)-lvlhalo:xendo(3)+lvlhalo))
+        
+            ! Temperature BCs
+            if (RAYT>0) then
+                if (inslwN==0) then ! Single heated wall
+                    Tup = 0.0
+                    Tlo = 1.0
+                else
+                    Tup = -0.5
+                    Tlo = 0.5
+                end if
             else
-                tempo(0,jc,ic) = tempo(1,jc,ic)
+                Tup = 0.5
+                Tlo = -0.5
             end if
-            if (TfixN==1) then
-                tempo(nxo,jc,ic) = 2.0*Tup - tempo(nxmo,jc,ic)
+            if (phasefield) then
+                if (RAYT>0) then
+                    Tup = 0.0
+                    Tlo = 1.0
+                else
+                    Tup = 1.0
+                    Tlo = 0.0
+                end if
+            end if
+        
+            do ic=xstarto(3),xendo(3)
+                do jc=xstarto(2),xendo(2)
+                    if (TfixS==1) then
+                        tempo(0,jc,ic) = 2.0*Tlo - tempo(1,jc,ic)
+                    else
+                        tempo(0,jc,ic) = tempo(1,jc,ic)
+                    end if
+                    if (TfixN==1) then
+                        tempo(nxro,jc,ic) = 2.0*Tup - tempo(nxmro,jc,ic)
+                    else
+                        tempo(nxro,jc,ic) = tempo(nxmro,jc,ic)
+                    end if
+                end do
+            end do
+        
+            call update_halo(tempo, lvlhalo)
+
+            call interpolate_xyz_old_to_new_ref(tempo, tempr(1:nxmr,:,:))
+
+            call DestroyReal3DArray(tempo)
+    else            
+            ! Allocate and read in old T
+            call AllocateReal3DArray(tempo, -1, nxo+1, xstarto(2)-lvlhalo, xendo(2)+lvlhalo, xstarto(3)-lvlhalo, xendo(3)+lvlhalo)
+        
+            tempo(:,:,:) = 0.d0
+        
+            call HdfReadContinua(nzo, nyo, nxo, xstarto(2), xendo(2), xstarto(3), xendo(3), 4, &
+                    tempo(1:nxo, xstarto(2)-lvlhalo:xendo(2)+lvlhalo, xstarto(3)-lvlhalo:xendo(3)+lvlhalo))
+        
+            ! Temperature BCs
+            if (RAYT>0) then
+                if (inslwN==0) then ! Single heated wall
+                    Tup = 0.0
+                    Tlo = 1.0
+                else
+                    Tup = -0.5
+                    Tlo = 0.5
+                end if
             else
-                tempo(nxo,jc,ic) = tempo(nxmo,jc,ic)
+                Tup = 0.5
+                Tlo = -0.5
             end if
-        end do
-    end do
-
-    call update_halo(tempo, lvlhalo)
-
-    call interpolate_xyz_old_to_new(tempo, temp(1:nxm,:,:))
-
-    call DestroyReal3DArray(tempo)
+            if (phasefield) then
+                if (RAYT>0) then
+                    Tup = 0.0
+                    Tlo = 1.0
+                else
+                    Tup = 1.0
+                    Tlo = 0.0
+                end if
+            end if
+        
+            do ic=xstarto(3),xendo(3)
+                do jc=xstarto(2),xendo(2)
+                    if (TfixS==1) then
+                        tempo(0,jc,ic) = 2.0*Tlo - tempo(1,jc,ic)
+                    else
+                        tempo(0,jc,ic) = tempo(1,jc,ic)
+                    end if
+                    if (TfixN==1) then
+                        tempo(nxo,jc,ic) = 2.0*Tup - tempo(nxmo,jc,ic)
+                    else
+                        tempo(nxo,jc,ic) = tempo(nxmo,jc,ic)
+                    end if
+                end do
+            end do
+        
+            call update_halo(tempo, lvlhalo)
+        
+            call interpolate_xyz_old_to_new(tempo, temp(1:nxm,:,:))
+        
+            call DestroyReal3DArray(tempo)
+    end if
 
     return
 end subroutine InterpInputVel
