@@ -184,67 +184,54 @@ program AFiD
 
 !CS   Create multigrid stencil for interpolation
     if (multires) call CreateMgrdStencil
-    if(ismaster) write(6,*) 'A'    
     if (phasefield .and. IBM) call CreatePFStencil
-    if(ismaster) write(6,*) 'B'  
     if (phasefield) call update_halo(phi,lvlhalo)
-    if(ismaster) write(6,*) 'C'  
     if (IBM) then
         call topogr
         ! if (phasefield) call UpdateIBMLocation
     end if
-    if(ismaster) write(6,*) 'D'  
     if (specwrite) then
         call InitAveragingVariables
         call InitSpectra
     end if
-    if(ismaster) write(6,*) 'E'  
 !EP   Update all relevant halos
     call update_halo(vx,lvlhalo)
     call update_halo(vy,lvlhalo)
     call update_halo(vz,lvlhalo)
-    if(ismaster) write(6,*) 'F'     
+
     if (multires_T) then
             call update_halo(tempr,lvlhalo)
     else
             call update_halo(temp,lvlhalo)
-    end if
-     if(ismaster) write(6,*) 'G'     
+    end if 
     if (salinity) call update_halo(sal,lvlhalo)
     call update_halo(pr,lvlhalo)
     if (moist) call update_halo(humid,lvlhalo)
     if (moist) call UpdateSaturation
-    if(ismaster) write(6,*) 'H'  
-
 !CS   Interpolate initial values
     if (salinity .or. multires_T) then
         call InterpVelMgrd
         call update_halo(vxr,lvlhalo)
         call update_halo(vyr,lvlhalo)
         call update_halo(vzr,lvlhalo)
-    end if
-    if(ismaster) write(6,*) 'I'     
+    end if  
     if (salinity) then
         call InterpSalMultigrid
         call update_halo(salc,lvlhalo)       
-    end if
-    if(ismaster) write(6,*) 'J'     
+    end if  
     if (multires_T) then
             call InterpTempMultigridr
     end if
-    if(ismaster) write(6,*) 'K'     
     if (phasefield) then
         if (.not. multires_T) call InterpTempMultigrid
         call InterpPhiMultigrid
         call update_halo(phic,lvlhalo)
     end if
-    if(ismaster) write(6,*) 'L'     
     if (multires_T) then
             call update_halo(temp,lvlhalo)
     else
             call update_halo(tempr,lvlhalo)
     end if
-    if(ismaster) write(6,*) 'M'     
     if(ismaster) write(6,*) 'Completed interpolation and ghost cell updates'  
 
     call CalcMeanProfiles
