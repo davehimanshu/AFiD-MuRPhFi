@@ -29,15 +29,15 @@ subroutine WriteFlowField(final)
     ! CHECKING ALL VARIABLES TO FIGURE OUT THE BUG !
     !----------------------------------------------!
     filnam1 = trim(basename)//'_bp.h5'
-    call HdfWriteRealHalo3D(filnam1,tempbp)
+    call HdfWriteRealHalo3DR(filnam1,tempbp)
     filnam1 = trim(basename)//'_tp.h5'
-    call HdfWriteRealHalo3D(filnam1,temptp)
+    call HdfWriteRealHalo3DR(filnam1,temptp)
     filnam1 = trim(basename)//'_sd1.h5'
-    call HdfWriteRealHalo3D(filnam1,ap3ssk)
+    call HdfWriteRealHalo3DR(filnam1,ap3ssk)
     filnam1 = trim(basename)//'_sd2.h5'
-    call HdfWriteRealHalo3D(filnam1,ac3ssk)
+    call HdfWriteRealHalo3DR(filnam1,ac3ssk)
     filnam1 = trim(basename)//'_sd3.h5'
-    call HdfWriteRealHalo3D(filnam1,am3ssk)
+    call HdfWriteRealHalo3DR(filnam1,am3ssk)
     !----------------------------------------------!
     if (multires_T) then
             filnam1 = trim(basename)//'_temp.h5'
