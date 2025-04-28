@@ -40,7 +40,7 @@ subroutine ImplicitAndUpdateTempr
                     dxxt = tempr(kc+1,jc,ic)*ap3ssk(kc) &
                         + tempr(kc,jc,ic)*ac3ssk(kc) &
                         - (ap3ssk(kc)+ac3ssk(kc))*tempbp(1,jc,ic)*TfixS
-                elseif(kc.eq.nxm) then  !CJH Apply upper BC
+                elseif(kc.eq.nxmr) then  !CJH Apply upper BC
                     dxxt = tempr(kc,jc,ic)*ac3ssk(kc) &
                         + tempr(kc-1,jc,ic)*am3ssk(kc) &
                         - (am3ssk(kc)+ac3ssk(kc))*temptp(1,jc,ic)*TfixN
