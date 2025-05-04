@@ -108,8 +108,8 @@ subroutine SetSalBCs
     if (rays>=0) then ! unstable S gradient
         do i=xstartr(3),xendr(3)
             do j=xstartr(2),xendr(2)
-                saltp(1,j,i) =  0.5d0
-                salbp(1,j,i) = -0.5d0
+                saltp(1,j,i) = -0.5d0
+                salbp(1,j,i) =  0.5d0
             end do
         end do
     else              ! stable S gradient
@@ -177,7 +177,7 @@ subroutine SetLinearSalinity
     do i=xstartr(3),xendr(3)
         do j=xstartr(2),xendr(2)
             do k=1,nxmr
-                sal(k,j,i) = salbp(1,j,i) - (salbp(1,j,i) - saltp(1,j,i))*xmr(k)/xcr(nxr)
+                sal(k,j,i) = salbp(1,j,i) + (saltp(1,j,i) - salbp(1,j,i))*xmr(k)/xcr(nxr)
             end do
         end do
     end do
@@ -499,7 +499,7 @@ subroutine AddSalBuoyancy(rkv)
     do ic=xstart(3),xend(3)
         do jc=xstart(2),xend(2)
             do kc=1,nxm
-                rkv(kc,jc,ic) = rkv(kc,jc,ic) - bycs*salc(kc,jc,ic)
+                rkv(kc,jc,ic) = rkv(kc,jc,ic) + bycs*salc(kc,jc,ic)
             end do
         end do
     end do
