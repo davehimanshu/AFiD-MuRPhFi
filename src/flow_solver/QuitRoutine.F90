@@ -47,6 +47,7 @@
       call DeallocatePressureVars
       if (multires) call DeallocateMgrdVariables
       if (salinity) call DeallocateSalVariables
+      if (reftemp) call DeallocateTemprVariables
       if (phasefield) call DeallocatePFVariables
       if (IBM) call DeallocateIBMVariables
       if (moist) call DeallocateMoistVariables

@@ -1,259 +1,347 @@
-!> Module adding evolution of salinity to AFiD
-!! Salinity is evolved on a refined grid, and therefore
+!> Module adding evolution of refined temperature to AFiD
+!! Temperature is evolved on a refined grid, and therefore
 !! this module depends on the multiple-resolution and
 !! interpolation modules
-module afid_salinity
+module afid_tempr
     use param
     use mgrd_arrays
+    use afid_salinity, only: rays
+    use afid_phasefield, only: pf_eps, read_phase_field_params, pf_Tm   
     use decomp_2d, only: xstart, xend, xstartr, xendr, update_halo
     use AuxiliaryRoutines
     use HermiteInterpolations, only: interpolate_xyz_to_coarse, interpolate_xyz_to_coarse_fast
     use ibm_param, only: solidr
     implicit none
 
-    real, allocatable, dimension(:,:,:) :: sal      !! Salinity field
-    real, allocatable, dimension(:,:,:) :: rusal    !! RK storage array for salinity (previous substep)
-    real, allocatable, dimension(:,:,:) :: hsal     !! RK storage array for salinity
-    real, allocatable, dimension(:,:,:) :: salc     !! Interpolated salinity field on coarse grid
-    real, allocatable, dimension(:,:,:) :: vxr      !! Velocity interpolated to refined grid (x component)
-    real, allocatable, dimension(:,:,:) :: vyr      !! Velocity interpolated to refined grid (y component)
-    real, allocatable, dimension(:,:,:) :: vzr      !! Velocity interpolated to refined grid (z component)
+    real, allocatable, dimension(:,:,:) :: rutempr    !! RK storage array for temperature (previous substep)
+    real, allocatable, dimension(:,:,:) :: htempr     !! RK storage array for temperature
+    real, allocatable, dimension(:,:,:) :: tempc     !! Interpolated temperature field on coarse grid
 
-    real :: rays    !! Solutal Rayleigh number
-    real :: pras    !! Schmidt number (solutal Prandtl number)
-    real :: pecs    !! Solutal Peclet number
-    real :: bycs    !! Buoyancy prefactor for salinity
+    real, allocatable, dimension(:,:,:) :: temprbp    !! temperature boundary value (lower plate)
+    real, allocatable, dimension(:,:,:) :: temprtp    !! temeprature boundary value (upper plate)
 
-    integer :: SfixS    !! Flag for whether salinity is fixed at lower plate
-    integer :: SfixN    !! Flag for whether salinity is fixed at upper plate
-
-    real, allocatable, dimension(:,:,:) :: salbp    !! Salinity boundary value (lower plate)
-    real, allocatable, dimension(:,:,:) :: saltp    !! Salinity boundary value (upper plate)
-
-    real, allocatable, dimension(:) :: ap3sskr      !! Upper diagonal derivative coefficient for salinity
-    real, allocatable, dimension(:) :: ac3sskr      !! Diagonal derivative coefficient for salinity
-    real, allocatable, dimension(:) :: am3sskr      !! Lower diagonal derivative coefficient for salinity
+    real, allocatable, dimension(:) :: ap3ttkr      !! Upper diagonal derivative coefficient for temperature
+    real, allocatable, dimension(:) :: ac3ttkr      !! Diagonal derivative coefficient for temperature
+    real, allocatable, dimension(:) :: am3ttkr      !! Lower diagonal derivative coefficient for temperature
 
 contains
 
-!> Subroutine to allocate memory for salinity-related variables
-subroutine InitSalVariables
+!> Subroutine to allocate memory for temperature-related variables
+subroutine InitTemprVariables
     
     ! Boundary planes
-    call AllocateReal3DArray(salbp,1,1,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
-    call AllocateReal3DArray(saltp,1,1,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
-
-    ! Main arrays with ghost cells
-    call AllocateReal3DArray(sal,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
+    call AllocateReal3DArray(temprbp,1,1,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
+    call AllocateReal3DArray(temprtp,1,1,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
     
     ! Runge-Kutta storage arrays (without ghost cells)
-    call AllocateReal3DArray(rusal,1,nxr,xstartr(2),xendr(2),xstartr(3),xendr(3))
-    call AllocateReal3DArray(hsal, 1,nxr,xstartr(2),xendr(2),xstartr(3),xendr(3))
+    call AllocateReal3DArray(rutempr,1,nxr,xstartr(2),xendr(2),xstartr(3),xendr(3))
+    call AllocateReal3DArray(htempr, 1,nxr,xstartr(2),xendr(2),xstartr(3),xendr(3))
 
     ! Coarse array
-    call AllocateReal3DArray(salc,1,nx,xstart(2)-lvlhalo,xend(2)+lvlhalo,xstart(3)-lvlhalo,xend(3)+lvlhalo)
-
-    !CJH Needed for melt boundary condition
-    if (melt) then
-        call AllocateReal3DArray(Tplaner,1,1,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
-    end if
+    call AllocateReal3DArray(tempc,1,nx,xstart(2)-lvlhalo,xend(2)+lvlhalo,xstart(3)-lvlhalo,xend(3)+lvlhalo)
 
     ! Second derivative coefficients
-    call AllocateReal1DArray(ap3sskr,1,nxr)
-    call AllocateReal1DArray(ac3sskr,1,nxr)
-    call AllocateReal1DArray(am3sskr,1,nxr)
+    call AllocateReal1DArray(ap3ttkr,1,nxr)
+    call AllocateReal1DArray(ac3ttkr,1,nxr)
+    call AllocateReal1DArray(am3ttkr,1,nxr)
 
-end subroutine InitSalVariables
+end subroutine InitTemprVariables
 
-!> Deallocate the variables used for evolving salinity
-subroutine DeallocateSalVariables
+!> Deallocate the variables used for evolving temperature
+subroutine DeallocateTemprVariables
 
     ! Boundary planes
-    call DestroyReal3DArray(salbp)
-    call DestroyReal3DArray(saltp)
+    call DestroyReal3DArray(temprbp)
+    call DestroyReal3DArray(temprtp)
 
-    ! Main array
-    call DestroyReal3DArray(sal)
-
-    call DestroyReal3DArray(rusal)
-    call DestroyReal3DArray(hsal)
+    call DestroyReal3DArray(rutempr)
+    call DestroyReal3DArray(htempr)
 
     ! Coarse array
-    call DestroyReal3DArray(salc)
-
-    ! Extra T slice for melt condition
-    if (melt) then
-        call DestroyReal3DArray(Tplaner)
-    end if
+    call DestroyReal3DArray(tempc)
 
     ! Second derivative coefficients
-    call DestroyReal1DArray(ap3sskr)
-    call DestroyReal1DArray(ac3sskr)
-    call DestroyReal1DArray(am3sskr)
+    call DestroyReal1DArray(ap3ttkr)
+    call DestroyReal1DArray(ac3ttkr)
+    call DestroyReal1DArray(am3ttkr)
 
-end subroutine DeallocateSalVariables
+end subroutine DeallocateTemprVariables
 
 !> Set the values for the boundary planes of salinity
-subroutine SetSalBCs
+subroutine SetTemprBCs
     integer :: i, j
 
-    if (rays>=0) then ! unstable S gradient
-        do i=xstartr(3),xendr(3)
-            do j=xstartr(2),xendr(2)
-                saltp(1,j,i) = 0.5d0
-                salbp(1,j,i) = -0.5d0
+    if (rayt>=0) then ! unstable T gradient
+        if (inslwN==0) then !Single heated wall case
+            do i=xstartr(3),xendr(3)
+                do j=xstartr(2),xendr(2)
+                    temprtp(1,j,i)=0.0
+                    temprbp(1,j,i)=1.0
+                end do
             end do
-        end do
-    else              ! stable S gradient
+        else
+            do i=xstartr(3),xendr(3)
+                do j=xstartr(2),xendr(2)
+                    temprtp(1,j,i)=-0.5d0
+                    temprbp(1,j,i)=0.5d0
+                end do
+            end do
+        end if
+    else              ! stable T gradient
         do i=xstartr(3),xendr(3)
             do j=xstartr(2),xendr(2)
-                saltp(1,j,i) = -0.5d0
-                salbp(1,j,i) =  0.5d0
+                temprtp(1,j,i)=0.5d0
+                temprbp(1,j,i)=-0.5d0
             end do
         end do
     end if
+    
     if (phasefield) then
+        if (rayt>=0) then
+            do i=xstartr(3),xendr(3)
+                do j=xstartr(2),xendr(2)
+                    temprtp(1,j,i) = 0.d0
+                    temprbp(1,j,i) = 1.d0
+                end do
+            end do
+        else
+            do i=xstartr(3),xendr(3)
+                do j=xstartr(2),xendr(2)
+                    temprtp(1,j,i) = 1.d0
+                    temprbp(1,j,i) = 0.d0
+                end do
+            end do
+        end if
+    end if
+
+    if (moist) then
         do i=xstartr(3),xendr(3)
             do j=xstartr(2),xendr(2)
-                saltp(1,j,i) = 0.d0
-                salbp(1,j,i) = 1.d0
+                temprbp(1,j,i) = 0.0
+                temprtp(1,j,i) = beta_q - 1.0
             end do
         end do
     end if
     
-    ! Update halo for interpolation routine
-    call update_halo(saltp,lvlhalo)
-    call update_halo(salbp,lvlhalo)
+    call update_halo(temprtp,lvlhalo)
+    call update_halo(temprbp,lvlhalo)
 
-end subroutine SetSalBCs
+end subroutine SetTemprBCs
 
-!> Set initial conditions for salinity field
+!> Set initial conditions for temperature field
 !! N.B. This can get overwritten by CreateInitialPhase if also using phase-field
-subroutine CreateInitialSalinity
-    integer :: i, j, k
+subroutine CreateInitialTempr
+    integer :: j,k,i,kmid
+    real :: xxx,yyy,zzz,eps,varptb,amp
+    real :: t0,Lambda,r, x0, A, B, alpha
+    real, dimension(11) :: yh, zh
     
-    !! Rayleigh-Taylor setup for pore-scale simulation
-    if (IBM) then
-        call SetSaltTwoLayer(h0=0.5*alx3, eps=1e-7, stable=.false.)
-        call AddSalinityNoise(amp=0.1, localised=.true., h0=0.5*alx3, extent=0.01)
-
-    !! Bounded double-diffusive convection (begin with small amplitude noise + BLs)
-    else if ((active_S==1) .and. (active_T==1) .and. (gAxis==1)) then
-        ! call SetZeroSalinity
+    if ((RayT < 0) .and. (RayS < 0)) then
+        !CJH: Stratified shear layer + noise in centre
+        eps = 1e-2
         do i=xstartr(3),xendr(3)
             do j=xstartr(2),xendr(2)
                 do k=1,nxmr
-                    sal(k,j,i) = 0.5*(2*(xmr(k) - 0.5))**7
+                    tempr(k,j,i) = tanh(xmr(k) - 0.5*alx3)
+                    call random_number(varptb)
+                    tempr(k,j,i) = tempr(k,j,i) + &
+                            cosh(xmr(k) - 0.5*alx3)**(-2)*eps*(2.0*varptb - 1.0)
                 end do
             end do
         end do
-        ! call AddSalinityNoise(amp=5e-3, localised=.false.)
-
-    !! Stratified shear layer setup
-    else if ((RayS < 0) .and. (RayT < 0)) then
-        call SetSaltTwoLayer(h0=0.5*alx3, eps=1.0, stable=.true.)
-        call AddSalinityNoise(amp=1e-2, localised=.true., h0=0.5*alx3, extent=1.0)
-
-    !! Default: linear profile + small noise (e.g. RBC, VC)
     else
-        call SetLinearSalinity
-        call AddSalinityNoise(amp=5e-3, localised=.false.)
+        ! Assign linear temperature profile in the nodes k=1 to k=nxm
+        do i=xstartr(3),xendr(3)
+            do j=xstartr(2),xendr(2)
+                do k=1,nxmr
+                    xxx = xmr(k)
+                    tempr(k,j,i) = temprbp(1,j,i) + (temprtp(1,j,i) - temprbp(1,j,i))*xmr(k)/alx3
+                end do
+            end do
+        end do
+
+        ! Add noise in the temperature profile
+        eps = 1e-3
+        do i=xstartr(3),xendr(3)
+            do j=xstartr(2),xendr(2)
+                do k=1,nxmr
+                    call random_number(varptb)
+                    if (abs(xmr(k)-0.5) + eps > 0.5) then
+                        amp = 0.5 - abs(xmr(k)-0.5) ! CJH Prevent values of |T| exceeding 0.5
+                        tempr(k,j,i) = tempr(k,j,i) + amp*(2.d0*varptb - 1.d0)
+                    else
+                    tempr(k,j,i) = tempr(k,j,i) + eps*(2.d0*varptb - 1.d0)
+                    end if
+                end do
+            end do
+        end do
     end if
 
-end subroutine CreateInitialSalinity
-
-!> Set salinity variable to linear profile between boundary values
-subroutine SetLinearSalinity
-    integer :: i, j, k
-
-    do i=xstartr(3),xendr(3)
-        do j=xstartr(2),xendr(2)
-            do k=1,nxmr
-                sal(k,j,i) = salbp(1,j,i) - (salbp(1,j,i) - saltp(1,j,i))*xmr(k)/xcr(nxr)
+    if (gAxis==3 .and. active_Tr==0) then
+        do i=xstartr(3),xendr(3)
+            do j=xstartr(2),xendr(2) ! Convergence test
+                do k=1,nxmr
+                    xxx = xmr(k) ! Linear profile + sin perturbation
+                    tempr(k,j,i) = temprbp(1,j,i) + (temprtp(1,j,i) - temprbp(1,j,i))*xmr(k)/alx3
+                    tempr(k,j,i) = tempr(k,j,i) + sin(2.0*pi*xxx/alx3) - sin(6.0*pi*xxx/alx3)
+                end do
             end do
         end do
-    end do
-end subroutine SetLinearSalinity
+    end if
 
-!> Set salinity variable to zero everywhere
-subroutine SetZeroSalinity
-    integer :: i, j, k
-
-    do i=xstartr(3),xendr(3)
-        do j=xstartr(2),xendr(2)
-            do k=1,nxmr
-                sal(k,j,i) = 0.0
+    if (gAxis==2 .and. inslwN==0) then  ! Ke et al comparison case
+        t0 = 1.4195567
+        do i=xstartr(3),xendr(3)
+            do j=xstartr(2),xendr(2)
+                do k=1,nxmr
+                    amp = 0.0
+                    do kmid=0,7
+                        amp = amp + sin(2.0**kmid * 2.0*pi*ymr(j)/ylen)
+                    end do
+                    amp = 1.0 + 1e-3*amp + 1e-3*sin(46.0*pi*zmr(i)/zlen)
+                    tempr(k,j,i) = amp*erfc(xmr(k)/2*sqrt(pect/t0))
+                end do
             end do
         end do
-    end do
-end subroutine SetZeroSalinity
+    end if
 
-!> Set the salinity field up as a two-layer system with a tanh profile
-!! with interface thickness eps
-subroutine SetSaltTwoLayer(h0, eps, stable, mode, mode_amp)
-    real, intent(in) :: h0          !! Mean height of interface
-    real, intent(in) :: eps         !! Width of tanh interface
-    logical, intent(in) :: stable   !! Flag determining gravitational stability of profile
-    integer, intent(in), optional :: mode   !! Optional mode number to perturb interface
-    real, intent(in), optional :: mode_amp  !! Amplitude of optional modal perturbation
-
-    real :: x0
-    integer :: i, j, k
-
-    x0 = h0
-
-    do i=xstartr(3),xendr(3)
-        do j=xstartr(2),xendr(2)
-            do k=1,nxmr
-                ! Use pf_IC input parameter as mode number for initial perturbation
-                if (present(mode)) x0 = h0 + mode_amp*sin(mode*2.0*pi*ymr(j)/ylen)
-                sal(k,j,i) = 0.5*tanh((xmr(k) - x0)/eps)
-                if (stable) sal(k,j,i) = -sal(k,j,i)
+    if (IBM .and. dPdy/=0) then
+        do i=xstartr(3),xendr(3)
+            do j=xstartr(2),xendr(2)
+                do k=1,nxmr
+                    tempr(k,j,i) = 0.0
+                end do
             end do
         end do
-    end do
+    end if
 
-end subroutine SetSaltTwoLayer
-
-!> Add random noise to the salinity field, either locally at an interface
-!! or uniformly. In both cases, noise is limited such that the absolute value
-!! of salinity does not exceed 0.5
-subroutine AddSalinityNoise(amp, localised, h0, extent)
-    real, intent(in) :: amp             !! Amplitude of random noise
-    logical, intent(in) :: localised    !! Flag determining whether to add noise around interface or everywhere
-    real, intent(in), optional :: h0    !! Height of interface if using localised noise
-    real, intent(in), optional :: extent    !! Width of localised noise region
-
-    integer :: i, j, k
-    real :: a2, varptb
-
-    call random_seed()
-
-    do i=xstartr(3),xendr(3)
-        do j=xstartr(2),xendr(2)
-            do k=1,nxmr
-                call random_number(varptb)
-                !! Add noise locally
-                if (localised) then
-                    sal(k,j,i) = sal(k,j,i) + amp/cosh((xmr(k) - h0)/extent)**2*varptb
-                    ! Restrict initial salinity field to [-0.5,0.5]
-                    sal(k,j,i) = min(0.5, sal(k,j,i))
-                    sal(k,j,i) = max(-0.5, sal(k,j,i))
-                !! Add noise everywhere uniformly
-                else
-                    ! Prevent values of |S| exceeding 0.5 by restricting noise amplitude locally
-                    if (abs(sal(k,j,i)) + amp > 0.5) then
-                        a2 = 0.5 - abs(sal(k,j,i))
-                        sal(k,j,i) = sal(k,j,i) + a2*(2.d0*varptb - 1.d0)
-                    else
-                        sal(k,j,i) = sal(k,j,i) + amp*(2.d0*varptb - 1.d0)
-                    end if
-                end if
+    if (moist) then
+        do i=xstartr(3),xendr(3)
+            do j=xstartr(2),xendr(2)
+                do k=1,nxmr
+                    tempr(k,j,i) = 0.0
+                end do
             end do
         end do
-    end do
+    end if
 
-end subroutine AddSalinityNoise
+    if (phasefield) then
+        ! Most of this is now in `afid_phasefield` in the routine `CreateInitialPhase`
+
+        if (pf_IC==3) then
+            do i=xstartr(3),xendr(3)
+                do j=xstartr(2),xendr(2)
+                    do k=1,nxmr
+                        xxx = xmr(k)
+                        ! Piecewise linear base profile for Purseed et al
+                        if (xxx < h0) then
+                            tempr(k,j,i) = 1.0 - (1.0 - pf_Tm)*xxx/h0
+                        else
+                            tempr(k,j,i) = pf_Tm*(1.0 - xxx)/(1.0 - h0)
+                        end if
+                    end do
+                end do
+            end do
+        end if
+
+        if (salinity) then
+            if (pf_IC==1) then
+                call read_phase_field_params(A, B, alpha)
+                t0 = 1e-3
+                x0 = 0.8
+!                h0 = x0 + 2*alpha*sqrt(t0)
+                do i=xstartr(3),xendr(3)
+                    do j=xstartr(2),xendr(2)
+                        do k=1,nxmr
+                            if (xmr(k) <= h0) then
+                                tempr(k,j,i) = 1 - A*erfc((x0 - xmr(k))/sqrt(t0)/2.0)
+                            else
+                                tempr(k,j,i) = 1 - A*erfc(-alpha)
+                            end if
+                        end do
+                    end do
+                end do
+            else if (pf_IC==2) then
+                call read_phase_field_params(A, B, alpha)
+                t0 = 1e-3
+!                h0 = 0.1 - 2*alpha*sqrt(t0)
+                eps = 5e-3
+                do i=xstartr(3),xendr(3)
+                    do j=xstartr(2),xendr(2)
+                        do k=1,nxmr
+                            call random_number(varptb)
+                            if (abs(ymr(j) - ylen/2.0) <= h0) then
+                                tempr(k,j,i) = 1.0 - A*erfc(-alpha)
+                            else if (ymr(j) < ylen/2.0) then
+                                tempr(k,j,i) = 1.0 - A*erfc((ylen/2.0 - h0 - ymr(j))/sqrt(t0)/2.0) &
+                                                + eps*(2.d0*varptb - 1.d0)
+                            else
+                                tempr(k,j,i) = 1.0 - A*erfc((ymr(j) - ylen/2.0 - h0)/sqrt(t0)/2.0) &
+                                + eps*(2.d0*varptb - 1.d0)
+                            end if
+                        end do
+                    end do
+                end do
+            else if (pf_IC==3) then
+                call read_phase_field_params(A, B, alpha)
+                ! Scallop initial condition
+                yh = [0.0, ylen/3, 2*ylen/3, ylen, &
+                        ylen/6, ylen/2, 5*ylen/6, &
+                        0.0, ylen/3, 2*ylen/3, ylen]
+                zh(1:4) = 0.0
+                zh(5:7) = zlen/2
+                zh(8:11) = zlen
+                x0 = 0.8
+                amp = 0.9
+                eps = 5e-3
+                do i=xstartr(3),xendr(3)
+                    do j=xstartr(2),xendr(2)
+!                        h0 = 0.0
+                        do k=1,11
+!                            h0 = max(h0, x0 - amp*((ym(j) - yh(k))**2 + (zm(i) - zh(k))**2))
+                        end do
+                        do k=1,nxmr
+                            call random_number(varptb)
+                            if (xmr(k) <= h0) then
+                                tempr(k,j,i) = 1.0 + eps*(2.d0*varptb - 1.d0)
+                            else
+                                tempr(k,j,i) = 1.0 - A*erfc(-alpha)
+                            end if
+                        end do
+                    end do
+                end do
+            else
+                kmid = nxmr/2
+                do i=xstartr(3),xendr(3)
+                    do j=xstartr(2),xendr(2)
+                        do k=1,kmid
+                            tempr(k,j,i) = 1.0
+                        end do
+                        do k=kmid+1,nxmr
+                            tempr(k,j,i) = 0.0
+                        end do
+                    end do
+                end do
+            end if
+        end if
+
+    end if
+
+    if (melt) then
+        A = 1.08995
+        do i=xstartr(3),xendr(3)
+            do j=xstartr(2),xendr(2)
+                do k=1,nxmr
+                    ! call random_number(varptb)
+                    ! temp(k,j,i) = eps*(2.d0*varptb - 1.d0) * exp(-xm(k)/0.1)
+                    tempr(k,j,i) = 1.0 - A*erfc(xmr(k)*sqrt(pect)/2.0)
+                end do
+            end do
+        end do
+    end if
+
+end subroutine CreateInitialTempr
+
 
 !> Compute the explicit terms for the salinity evolution
 !! and store the result in hsal
@@ -491,7 +579,7 @@ subroutine AddSalBuoyancy(rkv)
     do ic=xstart(3),xend(3)
         do jc=xstart(2),xend(2)
             do kc=1,nxm
-                rkv(kc,jc,ic) = rkv(kc,jc,ic) - bycs*salc(kc,jc,ic)
+                rkv(kc,jc,ic) = rkv(kc,jc,ic) + bycs*salc(kc,jc,ic)
             end do
         end do
     end do
@@ -710,4 +798,4 @@ subroutine CreateSalinityH5Groups(filename)
 
 end subroutine CreateSalinityH5Groups
 
-end module afid_salinity
+end module afid_tempr

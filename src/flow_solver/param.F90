@@ -23,7 +23,7 @@ module param
     real      :: dtmin,dtmax,limitCFL
     integer   :: nson,idtv
     real      :: tframe, save_3D
-    integer   :: active_T, active_S, pf_IC !CJH Option for passive scalars
+    integer   :: active_T, active_S, active_Tr, pf_IC !CJH Option for passive scalars
     integer   :: active_COR ! option for activating rotation
     real      :: Ross ! Rossby Number
     integer   :: I_advect ! Interface advect
@@ -94,6 +94,7 @@ module param
     logical :: multires=.false.
     logical :: phasefield=.false.
     logical :: salinity=.false.
+    logical :: reftemp=.false.
     logical :: specwrite=.false.
     logical :: pfield_a=.false.
 
@@ -123,13 +124,15 @@ module mgrd_arrays
     integer,allocatable,dimension(:) :: irangr,jrangr,krangr
     integer,allocatable,dimension(:) :: yc_to_ymr, zc_to_zmr
     real,allocatable,dimension(:,:,:) :: rhsr
-    real,allocatable,dimension(:,:) :: cxvx, cxvy, cxvz, cxrs, cxsalc, cxphic
-    real,allocatable,dimension(:,:) :: cyvx, cyvy, cyvz, cyrs, cysalc, cyphic
-    real,allocatable,dimension(:,:) :: czvx, czvy, czvz, czrs, czsalc, czphic
+    real,allocatable,dimension(:,:) :: cxvx, cxvy, cxvz, cxrs, cxsalc, cxphic, cxtempc
+    real,allocatable,dimension(:,:) :: cyvx, cyvy, cyvz, cyrs, cysalc, cyphic, cytempc
+    real,allocatable,dimension(:,:) :: czvx, czvy, czvz, czrs, czsalc, czphic, cztempc
     real,allocatable,dimension(:,:) :: cych, czch
     real,allocatable,dimension(:,:,:) :: tpdv,tpdvr  !CS mgrd
     real,allocatable,dimension(:,:,:) :: Tplaner
     real,allocatable,dimension(:,:) :: solid_height, height_vx, height_vy, height_vz
+    real, allocatable, dimension(:,:,:) :: tempr, vxr, vyr, vzr
+
 end module mgrd_arrays
 !===============================================================
 module stat_arrays

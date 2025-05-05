@@ -13,7 +13,6 @@ module afid_phasefield
     real, allocatable, dimension(:,:,:) :: ruphi    !! RK storage array for phase-field (previous substep)
     real, allocatable, dimension(:,:,:) :: hphi     !! RK storage array for phase-field
     real, allocatable, dimension(:,:,:) :: phic     !! Interpolated phase-field on coarse grid (also used to store d(phi)/dt)
-    real, allocatable, dimension(:,:,:) :: tempr    !! Interpolated temperature field on refined grid
 
     real :: pf_A        !! Phase-field Gibbs-Thomson parameter
     real :: pf_eps      !! Phase-field interface thickness
@@ -35,8 +34,6 @@ subroutine InitPFVariables
 
     ! Main array with ghost cells
     call AllocateReal3DArray(phi,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
-    ! Refined temperature array
-    call AllocateReal3DArray(tempr,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
 
     ! Arrays without ghost cells
     call AllocateReal3DArray(ruphi,1,nxr,xstartr(2),xendr(2),xstartr(3),xendr(3))
@@ -57,9 +54,6 @@ subroutine DeallocatePFVariables
 
     ! Main array
     call DestroyReal3DArray(phi)
-
-    ! Array for refined temperature
-    call DestroyReal3DArray(tempr)
 
     ! Arrays without ghost cells
     call DestroyReal3DArray(ruphi)

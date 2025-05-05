@@ -10,6 +10,7 @@ program AFiD
     use afid_pressure
     use afid_moisture
     use afid_salinity
+    use afid_tempr
     use afid_phasefield
     use afid_averaging
     use afid_spectra
@@ -100,6 +101,7 @@ program AFiD
     call InitPressureVars
     if (multires) call InitMgrdVariables  !CS mgrd
     if (salinity) call InitSalVariables
+    if (reftemp) call InitTemprVariables
     if (phasefield) call InitPFVariables
     if (moist) call InitMoistVariables
 
@@ -152,6 +154,7 @@ program AFiD
     call InitPressureSolver
     call SetTempBCs
     if (salinity) call SetSalBCs
+    if (reftemp) call SetTemprBCs
     if (moist) call SetHumidityBCs
 
     if(readflow) then
@@ -169,6 +172,7 @@ program AFiD
         instCFL=0.d0
 
         call CreateInitialConditions
+        if (reftemp) call CreateInitialTempr 
         if (salinity) call CreateInitialSalinity
         if (phasefield) call CreateInitialPhase
         if (moist) call CreateInitialHumidity

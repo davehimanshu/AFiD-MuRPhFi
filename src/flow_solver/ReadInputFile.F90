@@ -14,7 +14,7 @@ subroutine ReadInputFile
     implicit none
     character(len=4) :: dummy
     integer :: flagmelt, io
-    integer :: flagMR, flagsal, flagPF
+    integer :: flagMR, flagsal, flagPF, flagTr
     integer :: FFscaleS
 
     open(newunit=io,file='bou.in',status='old')
@@ -89,6 +89,10 @@ subroutine ReadInputFile
         read(io,301) dummy
         read(io,301) dummy
         read(io,*) h0
+        read(io,301) dummy
+        read(io,301) dummy
+        read(io,301) dummy
+        read(io,*) flagTr, active_Tr       
 301     format(a4)
     close(io)
 
@@ -113,7 +117,8 @@ subroutine ReadInputFile
     if(flagPF.ne.0) phasefield = .true.
     if(flagsal.ne.0) salinity = .true.
     if(I_advect.ne.0) pfield_a = .true.
-
+    if(flagTr.ne.0) reftemp = .true.
+        
     ! if(starea.ne.0) then 
     !   readstats = .true.
     !   if (.not. readflow) write(6,*) 'Warning: Restarting flowfield with statistics read'

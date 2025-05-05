@@ -4,6 +4,7 @@ subroutine ReadFlowInterp(prow,pcol)
     use local_arrays
     use param
     use input_grids
+    use mgrd_arrays, only: tempr
     use afid_salinity
     use afid_phasefield
     use afid_moisture, only: humid, InterpInputHum
@@ -153,6 +154,10 @@ subroutine ReadFlowInterp(prow,pcol)
         if (salinity) then
             call HdfReadContinua(nzr, nyr, nxr, xstartr(2), xendr(2), &
                                 xstartr(3), xendr(3), 5, sal)
+        end if
+        if (reftemp) then
+            call HdfReadContinua(nzr, nyr, nxr, xstartr(2), xendr(2), &
+                                xstartr(3), xendr(3), 5, tempr)
         end if
         if (phasefield) then
             call HdfReadContinua(nzr, nyr, nxr, xstartr(2), xendr(2), &

@@ -88,6 +88,23 @@ subroutine DeallocateMgrdVariables
     call DestroyReal2DArray(cyphic)
     call DestroyReal2DArray(czphic)
 
+    call DestroyReal2DArray(cxtempc)
+    call DestroyReal2DArray(cytempc)
+    call DestroyReal2DArray(cztempc)
+
+    ! RK arrays
+    call DestroyReal3DArray(rhsr)
+   
+    if (phasefield) .or. (reftemp) then
+            call DestroyReal3DArray(tempr)
+    end if
+
+    if (salinity) .or. (reftemp) then
+            call DestroyReal3DArray(vxr)
+            call DestroyReal3DArray(vyr)
+            call DestroyReal3DArray(vzr)
+    end if
+
     if (IBM) then
         if (phasefield) then
             call DestroyReal2DArray(cych)
