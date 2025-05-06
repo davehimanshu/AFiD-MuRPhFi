@@ -1,6 +1,6 @@
 # Choose the machine being used
 # Options: PC, SNELLIUS, IRENE, MARENOSTRUM, SUPERMUC, DISCOVERER
-MACHINE=Viper
+MACHINE=Emmy
 FLAVOUR=Intel
 # Modules required for each HPC system as follows:
 # SNELLIUS:
@@ -17,7 +17,10 @@ FLAVOUR=Intel
 # 	GCC: 1) GCC/11.3.0 2) OpenMPI/4.1.4 3) HDF5/1.12.2 4) FFTW.MPI/3.3.10 5) ScaLAPACK/2.2.0-fb
 
 # Viper:
-# 	Intel: 1) intel/2024.0   2) impi/2021.11   3) fftw-mpi/3.3.10   4) hdf5-mpi/1.14.1   5) mkl/2024.0  
+# 	Intel: 1) intel/2024.0   2) impi/2021.11   3) fftw-mpi/3.3.10   4) hdf5-mpi/1.14.1   5) mkl/2024.0
+#
+# Emmy:  
+# 	Intel: 1) intel/2022.2 2) impi/2021.6 3) hdf5-parallel/impi/intel/1.12.0
 
 #=======================================================================
 #  Compiler options
@@ -59,6 +62,13 @@ ifeq ($(MACHINE),Viper)
 		LDFLAGS = -lfftw3 -llapack -ldl
 	else
 		LDFLAGS = -L/opt/software/aocl/4.1.0/forIntelOmpi/lib_LP64 -lfftw3 -qmkl=sequential
+	endif
+endif
+ifeq ($(MACHINE),Emmy)
+	ifeq ($(FLAVOUR),GNU)
+		LDFLAGS = -lfftw3 -llapack -ldl
+	else
+		LDFLAGS = -L/user/yifeng.fu/u16191/.project/dir.lustre-emmy-hdd/himanshu/ThirdParty/fftw3-intel/lib -lfftw3 -qmkl=sequential
 	endif
 endif
 ifeq ($(MACHINE),Raven)
