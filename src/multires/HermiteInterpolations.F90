@@ -7,7 +7,8 @@ module HermiteInterpolations
                             irangb, jrangb, krangb, &
                             cxrs, cyrs, czrs, &
                             cxsalc, cysalc, czsalc, &
-                            cxphic, cyphic, czphic
+                            cxphic, cyphic, czphic, &
+                            cxtempc, cytempc, cztempc
     use param, only: nx, nxm, nxmr, lvlhalo, ny, nym, nz, nzm
     use input_grids, only: nxmo, nxmro, xstarto, xendo, &
                             irangsr, jrangsr, krangsr
@@ -279,6 +280,13 @@ subroutine interpolate_xyz_to_coarse_fast(rvar, cvar, vname)
         irang(0:nx) = irangb(0:nx)
         jrang = jrangb
         krang = krangb
+    else if (vname=="temp") then
+        cx(:,:) = cxtempc(:,1:nxm)
+        cy(:,:) = cytempc(:,:)
+        cz(:,:) = cztempc(:,:)
+        irang(0:nx) = irangb(0:nx)
+        jrang = jrangb
+        krang = krangb           
     else
         cx(:,:) = cxphic(:,:)
         cy(:,:) = cyphic(:,:)

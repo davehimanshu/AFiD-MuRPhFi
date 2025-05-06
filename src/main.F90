@@ -201,30 +201,41 @@ program AFiD
     call update_halo(vz,lvlhalo)
     call update_halo(temp,lvlhalo)
     if (salinity) call update_halo(sal,lvlhalo)
+    if (reftemp) call update_halo(tempr,lvlhalo)
     call update_halo(pr,lvlhalo)
     if (moist) call update_halo(humid,lvlhalo)
     if (moist) call UpdateSaturation
 
 
 !CS   Interpolate initial values
-    if (salinity) then
+    if (salinity .or. reftemp) then
         call InterpVelMgrd
+    end if
+    if (salinity) then
         call InterpSalMultigrid
     end if
-    if (phasefield) then
-        call InterpTempMultigrid
+    if (reftemp) then
+        call InterpTemprMultigrid    
+    end if
+    if (phasefield) then    
+        if (.not. reftemp) call InterpTempMultigrid
         call InterpPhiMultigrid
     end if
 
 !EP   Update all relevant halos
-    if (salinity) then
+    if (salinity .or. reftemp) then
         call update_halo(vxr,lvlhalo)
         call update_halo(vyr,lvlhalo)
-        call update_halo(vzr,lvlhalo)
+        call update_halo(vzr,lvlhalo)           
+    end if
+    if (salinity) then
         call update_halo(salc,lvlhalo)
     end if
+    if (reftemp) then
+        call update_halo(tempc,lvlhalo)
+    end if
     if (phasefield) then
-        call update_halo(tempr,lvlhalo)
+        if (.not. reftemp) call update_halo(tempr,lvlhalo)
         call update_halo(phic,lvlhalo)
     end if
 

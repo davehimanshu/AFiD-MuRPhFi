@@ -10,6 +10,7 @@
 
 subroutine WriteFlowField(final)
     use param
+    use mgrd_arrays, only: tempr
     use local_arrays, only: vz,vy,vx,temp,pr
     use afid_salinity, only: sal
     use afid_phasefield, only: phi
@@ -39,6 +40,10 @@ subroutine WriteFlowField(final)
     if (salinity) then
         filnam1 = trim(basename)//'_sal.h5'
         call HdfWriteRealHalo3DR(filnam1,sal)
+    end if
+    if (reftemp) then
+        filnam1 = trim(basename)//'_tempr.h5'
+        call HdfWriteRealHalo3DR(filnam1,tempr)
     end if
     if (phasefield) then
         filnam1 = trim(basename)//'_phi.h5'

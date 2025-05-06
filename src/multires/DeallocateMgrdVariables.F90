@@ -95,11 +95,11 @@ subroutine DeallocateMgrdVariables
     ! RK arrays
     call DestroyReal3DArray(rhsr)
    
-    if (phasefield) .or. (reftemp) then
+    if (phasefield .or. reftemp) then
             call DestroyReal3DArray(tempr)
     end if
 
-    if (salinity) .or. (reftemp) then
+    if (salinity .or. reftemp) then
             call DestroyReal3DArray(vxr)
             call DestroyReal3DArray(vyr)
             call DestroyReal3DArray(vzr)

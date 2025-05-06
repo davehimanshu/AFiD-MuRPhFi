@@ -17,6 +17,7 @@
       use afid_moisture, only: DeallocateMoistVariables
       use afid_phasefield, only: DeallocatePFVariables
       use afid_salinity, only: DeallocateSalVariables
+      use afid_tempr, only: DeallocateTemprVariables
       use afid_averaging
       use afid_spectra
       implicit none

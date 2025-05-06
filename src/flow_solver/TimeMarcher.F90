@@ -13,10 +13,11 @@
 subroutine TimeMarcher
     use param
     use local_arrays
-    ! use mgrd_arrays, only: vxr,vyr,vzr,salc,sal,phi,phic,tempr
+    use mgrd_arrays, only: vxr,vyr,vzr,tempr
     use afid_pressure
     use afid_salinity
     use afid_phasefield
+    use afid_tempr
     use mpih
     use decomp_2d
     use ibm_param, only: aldto
@@ -63,6 +64,22 @@ subroutine TimeMarcher
             end if
         end if
 
+        if (reftemp) then
+            call ExplicitTempr
+            
+            ! If using tempr as an active scalar, add its buoyancy contribution
+            ! to the relevant component of the momentum equation
+            if (active_Tr==1) then
+                if (gAxis==1) then
+                    call AddTemprBuoyancy(qcap)
+                elseif (gAxis==2) then
+                    call AddTemprBuoyancy(dph)
+                elseif (gAxis==3) then
+                    call AddTemprBuoyancy(dq)
+                end if
+            end if
+        end if
+       
         if (phasefield) then
            if (pfield_a) call ExplicitPhase
            call AddVolumePenalty
@@ -72,7 +89,8 @@ subroutine TimeMarcher
            end if
            if (pfield_a) call ImplicitPhase
             ! Add the latent heat and salt terms *after* computing the implicit solve for phi
-           if (pfield_a) call AddLatentHeat
+           if (pfield_a .and. (.not. reftemp)) call AddLatentHeat
+           if (pfield_a .and. reftemp) call AddLatentHeatr
            if (salinity) call AddLatentSalt
         end if
 
@@ -93,6 +111,7 @@ subroutine TimeMarcher
         call ImplicitAndUpdateTemp
 
         if (salinity) call ImplicitSalinity
+        if (reftemp) call ImplicitTempr
 
         if (moist) call ImplicitHumidity
 
@@ -134,35 +153,67 @@ subroutine TimeMarcher
         if (salinity) call update_halo(sal,lvlhalo)
         if (phasefield) call update_halo(phi,lvlhalo)
         if (moist) call update_halo(humid,lvlhalo)
+        if (reftemp) call update_halo(tempr,lvlhalo)
 
-        if (salinity) then
+        if (salinity .or. reftemp) then
             call InterpVelMgrd !Vel from base mesh to refined mesh
             call update_halo(vxr,lvlhalo)
             call update_halo(vyr,lvlhalo)
             call update_halo(vzr,lvlhalo)
+        end if
+
+        if (salinity) then
             call InterpSalMultigrid !Sal from refined mesh to base mesh
             call update_halo(salc,lvlhalo)
         end if
 
+        if (reftemp) then
+            call InterpTemprMultigrid !Sal from refined mesh to base mesh
+            call update_halo(tempc,lvlhalo)
+        end if
+       
+
         if (phasefield) then
-            call InterpTempMultigrid
-            call update_halo(tempr,lvlhalo)
+            if (.not. reftemp) then
+                    call InterpTempMultigrid
+                    call update_halo(tempr,lvlhalo)
+            end if
             call InterpPhiMultigrid
             call update_halo(phic,lvlhalo)
-            if (.not.pfield_a) then
-               do i = xstart(3), xend(3)
-                do j = xstart(2), xend(2)
-                 do k = 1, nxm
-                        if (phic(k,j,i) > 0.1) then
-                           temp(k,j,i) = 0.0
-                        end if
-                 end do
-                end do
-               end do
+            if (reftemp) then
+                    if (.not.pfield_a) then
+                       do i = xstartr(3), xendr(3)
+                        do j = xstartr(2), xendr(2)
+                         do k = 1, nxmr
+                                if (phi(k,j,i) > 0.1) then
+                                   tempr(k,j,i) = 0.0
+                                end if
+                         end do
+                        end do
+                       end do
+                    end if
+            else
+                    if (.not.pfield_a) then
+                       do i = xstart(3), xend(3)
+                        do j = xstart(2), xend(2)
+                         do k = 1, nxm
+                                if (phic(k,j,i) > 0.1) then
+                                   temp(k,j,i) = 0.0
+                                end if
+                         end do
+                        end do
+                       end do
+                    end if
             end if
-            call update_halo(temp,lvlhalo)
-            call InterpTempMultigrid
-            call update_halo(tempr,lvlhalo)
+            if (reftemp) then
+                    call update_halo(tempr,lvlhalo)
+                    call InterpTemprMultigrid
+                    call update_halo(tempc,lvlhalo)                   
+            else
+                    call update_halo(temp,lvlhalo)
+                    call InterpTempMultigrid
+                    call update_halo(tempr,lvlhalo)
+            end if
 
         end if
 

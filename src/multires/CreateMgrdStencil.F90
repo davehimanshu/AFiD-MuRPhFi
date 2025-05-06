@@ -26,9 +26,11 @@ subroutine CreateMgrdStencil
         call interpolation_indices(irange, xmr(1:nxmr), xc(1:nx), alx3)
         call construct_stencil(cxsalc, xmr(1:nxmr), xc(1:nx), alx3, irange, "x")
         call interpolation_indices(irangb, xc(1:nx), xmr(1:nxmr), alx3)
+        cxtempc(:,:) = czsalc(:,:)
     else
         irangb = irangs
         cxsalc(:,1:nxm) = cxphic(:,:)
+        cxtempc(:,1:nxm) = cxphic(:,:)
     end if
 
     ! Construct stencils in y direction
@@ -49,9 +51,11 @@ subroutine CreateMgrdStencil
         call interpolation_indices(jrange, ymr(1:nymr), yc(1:nym), ylen)
         call construct_stencil(cysalc, ymr(1:nymr), yc(1:nym), ylen, jrange, "y")
         call interpolation_indices(jrangb, yc(1:nym), ymr(1:nymr), ylen)
+        cytempc(:,:) = cysalc(:,:)
     else
         jrangb = jrangs
         cysalc(:,:) = cyphic(:,:)
+        cytempc(:,:) = cyphic(:,:)
     end if
 
     ! Construct stencils in z direction
@@ -72,9 +76,11 @@ subroutine CreateMgrdStencil
         call interpolation_indices(krange, zmr(1:nzmr), zc(1:nzm), zlen)
         call construct_stencil(czsalc, zmr(1:nzmr), zc(1:nzm), zlen, krange, "z")
         call interpolation_indices(krangb, zc(1:nzm), zmr(1:nzmr), zlen)
+        cztempc(:,:) = czsalc(:,:)
     else
         krangb = krangs
         czsalc(:,:) = czphic(:,:)
+        cztempc(:,:) = czphic(:,:)
     end if
 
     return

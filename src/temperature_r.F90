@@ -6,7 +6,7 @@ module afid_tempr
     use param
     use mgrd_arrays
     use afid_salinity, only: rays
-    use afid_phasefield, only: pf_eps, read_phase_field_params, pf_Tm   
+    use afid_phasefield, only: pf_eps, read_phase_field_params, pf_Tm, pf_S   
     use decomp_2d, only: xstart, xend, xstartr, xendr, update_halo
     use AuxiliaryRoutines
     use HermiteInterpolations, only: interpolate_xyz_to_coarse, interpolate_xyz_to_coarse_fast
@@ -69,6 +69,7 @@ end subroutine DeallocateTemprVariables
 
 !> Set the values for the boundary planes of salinity
 subroutine SetTemprBCs
+    use afid_moisture, only: beta_q       
     integer :: i, j
 
     if (rayt>=0) then ! unstable T gradient
@@ -343,9 +344,9 @@ subroutine CreateInitialTempr
 end subroutine CreateInitialTempr
 
 
-!> Compute the explicit terms for the salinity evolution
+!> Compute the explicit terms for the tempr evolution
 !! and store the result in hsal
-subroutine ExplicitSalinity
+subroutine ExplicitTempr
     integer :: ic, jc, kc
     integer :: im, jm, km
     integer :: ip, jp, kp
@@ -360,8 +361,8 @@ subroutine ExplicitSalinity
     udyr = 0.5d0*dyr
     udzr = 0.5d0*dzr
     ! Diffusion coefficients
-    udyrq = dyqr/pecs
-    udzrq = dzqr/pecs
+    udyrq = dyqr/pect
+    udzrq = dzqr/pect
 
     ! x-advection coefficients
     do kc=1,nxmr
@@ -383,31 +384,31 @@ subroutine ExplicitSalinity
                 ! x-advection d/dx (vx * S)
                 if (kc==1) then
                     hsx = ( &
-                          vxr(kp,jc,ic)*(sal(kp,jc,ic) + sal(kc,jc,ic)) &
-                        - vxr(kc,jc,ic)*2.d0*salbp(1,jc,ic) &
+                          vxr(kp,jc,ic)*(tempr(kp,jc,ic) + tempr(kc,jc,ic)) &
+                        - vxr(kc,jc,ic)*2.d0*temprbp(1,jc,ic) &
                     )*udx3mr(kc)*0.5d0
                 elseif (kc==nxmr) then
                     hsx = ( &
-                          vxr(kp,jc,ic)*2.d0*saltp(1,jc,ic) &
-                        - vxr(kc,jc,ic)*(sal(kc,jc,ic) + sal(km,jc,ic)) &
+                          vxr(kp,jc,ic)*2.d0*temprtp(1,jc,ic) &
+                        - vxr(kc,jc,ic)*(tempr(kc,jc,ic) + tempr(km,jc,ic)) &
                     )*udx3mr(kc)*0.5d0
                 else
                     hsx = ( &
-                          vxr(kp,jc,ic)*(sal(kp,jc,ic) + sal(kc,jc,ic)) &
-                        - vxr(kc,jc,ic)*(sal(kc,jc,ic) + sal(km,jc,ic)) &
+                          vxr(kp,jc,ic)*(tempr(kp,jc,ic) + tempr(kc,jc,ic)) &
+                        - vxr(kc,jc,ic)*(tempr(kc,jc,ic) + tempr(km,jc,ic)) &
                     )*udx3mr(kc)*0.5d0
                 end if
 
                 ! y-advection d/dy(vy * S)
                 hsy = ( &
-                      vyr(kc,jp,ic)*(sal(kc,jp,ic) + sal(kc,jc,ic)) &
-                    - vyr(kc,jc,ic)*(sal(kc,jc,ic) + sal(kc,jm,ic)) &
+                      vyr(kc,jp,ic)*(tempr(kc,jp,ic) + tempr(kc,jc,ic)) &
+                    - vyr(kc,jc,ic)*(tempr(kc,jc,ic) + tempr(kc,jm,ic)) &
                 )*udyr
 
                 ! z-advection d/dz(vz * S)
                 hsz = ( &
-                      vzr(kc,jc,ip)*(sal(kc,jc,ip) + sal(kc,jc,ic)) &
-                    - vzr(kc,jc,ic)*(sal(kc,jc,ic) + sal(kc,jc,im)) &
+                      vzr(kc,jc,ip)*(tempr(kc,jc,ip) + tempr(kc,jc,ic)) &
+                    - vzr(kc,jc,ic)*(tempr(kc,jc,ic) + tempr(kc,jc,im)) &
                 )*udzr
 
                 !! If using immersed boundary, enforce zero lateral gradient at interface
@@ -415,42 +416,42 @@ subroutine ExplicitSalinity
                     !!! ADD THIS TO IBM MODULE, CALL AS SUBROUTINE
                     ! yy second derivative of salinity
                     if (solidr(kc,jp,ic)) then
-                        dyys = (sal(kc,jm,ic) - sal(kc,jc,ic))*udyrq
+                        dyys = (tempr(kc,jm,ic) - tempr(kc,jc,ic))*udyrq
                     elseif (solidr(kc,jm,ic)) then
-                        dyys = (sal(kc,jp,ic) - sal(kc,jc,ic))*udyrq
+                        dyys = (tempr(kc,jp,ic) - tempr(kc,jc,ic))*udyrq
                     else
-                        dyys = (sal(kc,jp,ic) - 2.0*sal(kc,jc,ic) + sal(kc,jm,ic))*udyrq
+                        dyys = (tempr(kc,jp,ic) - 2.0*tempr(kc,jc,ic) + tempr(kc,jm,ic))*udyrq
                     end if
 
                     ! zz second derivative of salinity
                     if (solidr(kc,jc,ip)) then
-                        dzzs = (sal(kc,jc,im) - sal(kc,jc,ic))*udzrq
+                        dzzs = (tempr(kc,jc,im) - tempr(kc,jc,ic))*udzrq
                     elseif (solidr(kc,jc,im)) then
-                        dzzs = (sal(kc,jc,ip) - sal(kc,jc,ic))*udzrq
+                        dzzs = (tempr(kc,jc,ip) - tempr(kc,jc,ic))*udzrq
                     else
-                        dzzs = (sal(kc,jc,ip) - 2.0*sal(kc,jc,ic) + sal(kc,jc,im))*udzrq
+                        dzzs = (tempr(kc,jc,ip) - 2.0*tempr(kc,jc,ic) + tempr(kc,jc,im))*udzrq
                     end if
                 else
                     ! yy second derivative of salinity
-                    dyys = (sal(kc,jp,ic) - 2.0*sal(kc,jc,ic) + sal(kc,jm,ic))*udyrq
+                    dyys = (tempr(kc,jp,ic) - 2.0*tempr(kc,jc,ic) + tempr(kc,jm,ic))*udyrq
                     ! zz second derivative of salinity
-                    dzzs = (sal(kc,jc,ip) - 2.0*sal(kc,jc,ic) + sal(kc,jc,im))*udzrq
+                    dzzs = (tempr(kc,jc,ip) - 2.0*tempr(kc,jc,ic) + tempr(kc,jc,im))*udzrq
                 end if
 
                 ! Sum explicit terms
-                hsal(kc,jc,ic) = -(hsx + hsy + hsz) + dyys + dzzs
+                htempr(kc,jc,ic) = -(hsx + hsy + hsz) + dyys + dzzs
             end do
         end do
     end do
 
-end subroutine ExplicitSalinity
+end subroutine ExplicitTempr
 
-!> Compute the implicit terms for the salinity evolution
-subroutine ImplicitSalinity
+!> Compute the implicit terms for the tempr evolution
+subroutine ImplicitTempr
     integer :: ic, jc, kc
     real :: dxxs, alpec
 
-    alpec = al/pecs
+    alpec = al/pect
 
     do ic=xstartr(3),xendr(3)
         do jc=xstartr(2),xendr(2)
@@ -459,50 +460,50 @@ subroutine ImplicitSalinity
                 ! Second xx derivative
                 ! Apply lower BC
                 if (kc==1) then
-                    dxxs= sal(kc+1,jc,ic)*ap3sskr(kc) &
-                        + sal(kc  ,jc,ic)*ac3sskr(kc) &
-                        - (ap3sskr(kc) + ac3sskr(kc))*salbp(1,jc,ic)*SfixS
+                    dxxs= tempr(kc+1,jc,ic)*ap3ttkr(kc) &
+                        + tempr(kc  ,jc,ic)*ac3ttkr(kc) &
+                        - (ap3ttkr(kc) + ac3ttkr(kc))*temprbp(1,jc,ic)*TfixS
                 ! Apply upper BC
                 elseif (kc==nxmr) then
-                    dxxs= sal(kc  ,jc,ic)*ac3sskr(kc) &
-                        + sal(kc-1,jc,ic)*am3sskr(kc) &
-                        - (am3sskr(kc) + ac3sskr(kc))*saltp(1,jc,ic)*SfixN
+                    dxxs= tempr(kc  ,jc,ic)*ac3ttkr(kc) &
+                        + tempr(kc-1,jc,ic)*am3ttkr(kc) &
+                        - (am3ttkr(kc) + ac3ttkr(kc))*temprtp(1,jc,ic)*TfixN
                 else
-                    dxxs= sal(kc+1,jc,ic)*ap3sskr(kc) &
-                        + sal(kc  ,jc,ic)*ac3sskr(kc) &
-                        + sal(kc-1,jc,ic)*am3sskr(kc)
+                    dxxs= tempr(kc+1,jc,ic)*ap3ttkr(kc) &
+                        + tempr(kc  ,jc,ic)*ac3ttkr(kc) &
+                        + tempr(kc-1,jc,ic)*am3ttkr(kc)
                 end if
 
-                rhsr(kc,jc,ic) = (ga*hsal(kc,jc,ic) + ro*rusal(kc,jc,ic) + alpec*dxxs)*dt
+                rhsr(kc,jc,ic) = (ga*htempr(kc,jc,ic) + ro*rutempr(kc,jc,ic) + alpec*dxxs)*dt
 
-                rusal(kc,jc,ic) = hsal(kc,jc,ic)
+                rutempr(kc,jc,ic) = htempr(kc,jc,ic)
             end do
         end do
     end do
 
     if (IBM) then
-        call SolveImpEqnUpdate_Sal_ibm
+        !call SolveImpEqnUpdate_Sal_ibm
     else
-        call SolveImpEqnUpdate_Sal
+        call SolveImpEqnUpdate_Tempr
     end if
 
-end subroutine ImplicitSalinity
+end subroutine ImplicitTempr
 
 !> Solve the implicit system for the salinity
 !! and update the global variable sal
-subroutine SolveImpEqnUpdate_Sal
+subroutine SolveImpEqnUpdate_Tempr
     real :: betadx, ackl_b
     integer :: ic, jc, kc, nrhs, ipkv(nxr), info
     real :: amkT(nxmr-1), ackT(nxmr), apkT(nxmr-1), appk(nxmr-2)
 
-    betadx = 0.5d0*al*dt/pecs
+    betadx = 0.5d0*al*dt/pect
 
     ! Construct tridiagonal matrix for LHS
     do kc=1,nxmr
-        ackl_b = 1.0d0/(1. - ac3sskr(kc)*betadx)
-        if (kc > 1) amkT(kc-1) = -am3sskr(kc)*betadx*ackl_b
+        ackl_b = 1.0d0/(1. - ac3ttkr(kc)*betadx)
+        if (kc > 1) amkT(kc-1) = -am3ttkr(kc)*betadx*ackl_b
         ackT(kc) = 1.d0
-        if (kc < nxmr) apkT(kc) = -ap3sskr(kc)*betadx*ackl_b
+        if (kc < nxmr) apkT(kc) = -ap3ttkr(kc)*betadx*ackl_b
     end do
 
     ! Factor the tridiagonal matrix
@@ -513,7 +514,7 @@ subroutine SolveImpEqnUpdate_Sal
     do ic=xstartr(3),xendr(3)
         do jc=xstartr(2),xendr(2)
             do kc=1,nxmr
-                ackl_b = 1.0/(1.0 - ac3sskr(kc)*betadx)
+                ackl_b = 1.0/(1.0 - ac3ttkr(kc)*betadx)
                 rhsr(kc,jc,ic) = rhsr(kc,jc,ic)*ackl_b
             end do
         end do
@@ -526,75 +527,94 @@ subroutine SolveImpEqnUpdate_Sal
     do ic=xstartr(3),xendr(3)
         do jc=xstartr(2),xendr(2)
            do kc=1,nxmr
-             sal(kc,jc,ic) = sal(kc,jc,ic) + rhsr(kc,jc,ic)
+             tempr(kc,jc,ic) = tempr(kc,jc,ic) + rhsr(kc,jc,ic)
             end do
          end do
      end do
 
-end subroutine SolveImpEqnUpdate_Sal
+end subroutine SolveImpEqnUpdate_Tempr
 
 !> Interpolate the salinity field onto the coarse grid to
 !! provide buoyancy forcing to the momentum equation
-subroutine InterpSalMultigrid
+subroutine InterpTemprMultigrid
     integer :: icr, jcr, kcr
 
     ! Set coarse salinity array to zero
-    salc(:,:,:) = 0.d0
+    tempc(:,:,:) = 0.d0
 
     ! Extend refined array in wall-normal direction to give sufficient points
     ! for cubic interpolation
     do icr=xstartr(3)-lvlhalo,xendr(3)+lvlhalo
         do jcr=xstartr(2)-lvlhalo,xendr(2)+lvlhalo
             do kcr=1,nxmr
-                tpdvr(kcr,jcr,icr) = sal(kcr,jcr,icr)
+                tpdvr(kcr,jcr,icr) = tempr(kcr,jcr,icr)
             end do
-            if (SfixS==1) then
-                tpdvr(0,jcr,icr) = 2.0*salbp(1,jcr,icr) - sal(1,jcr,icr)
+            if (TfixS==1) then
+                tpdvr(0,jcr,icr) = 2.0*temprbp(1,jcr,icr) - tempr(1,jcr,icr)
             else
-                tpdvr(0,jcr,icr) = sal(1,jcr,icr)
+                tpdvr(0,jcr,icr) = tempr(1,jcr,icr)
             end if
-            if (SfixN==1) then
-                tpdvr(nxr,jcr,icr) = 2.0*saltp(1,jcr,icr) - sal(nxmr,jcr,icr)
+            if (TfixN==1) then
+                tpdvr(nxr,jcr,icr) = 2.0*temprtp(1,jcr,icr) - tempr(nxmr,jcr,icr)
             else
-                tpdvr(nxr,jcr,icr) = sal(nxmr,jcr,icr)
+                tpdvr(nxr,jcr,icr) = tempr(nxmr,jcr,icr)
             end if
         end do
     end do
 
     ! Interpolate the refined field to the coarse grid, storing in salc
     if ((xmr(1) < xm(1)) .and. (xmr(nxmr) > xm(nxm))) then
-        call interpolate_xyz_to_coarse_fast(tpdvr, salc(1:nxm,:,:), "sal")
+        call interpolate_xyz_to_coarse_fast(tpdvr, tempc(1:nxm,:,:), "temp")
     else
-        call interpolate_xyz_to_coarse(tpdvr, salc(1:nxm,:,:))
+        call interpolate_xyz_to_coarse(tpdvr, tempc(1:nxm,:,:))
     end if
 
-end subroutine InterpSalMultigrid
+end subroutine InterpTemprMultigrid
 
-!> Add buoyancy contribution from the salinity to one of the
+!> Add buoyancy contribution from tempr to one of the
 !! momentum forcing arrays
-subroutine AddSalBuoyancy(rkv)
+subroutine AddTemprBuoyancy(rkv)
     real, dimension(:,xstart(2):,xstart(3):), intent(inout) :: rkv
     integer :: ic, jc, kc
 
     do ic=xstart(3),xend(3)
         do jc=xstart(2),xend(2)
             do kc=1,nxm
-                rkv(kc,jc,ic) = rkv(kc,jc,ic) + bycs*salc(kc,jc,ic)
+                rkv(kc,jc,ic) = rkv(kc,jc,ic) + byct*tempc(kc,jc,ic)
             end do
         end do
     end do
 end subroutine
 
-!> Calculate and save vertical profiles related to the salinity
+!> Add "latent tempr" term to the RK forcing array for salinity (hsal),
+!! having calculated d/dt(phi) from the implicit solve and stored it in rhsr
+subroutine AddLatentHeatr
+    real :: aldt
+    integer :: ic, jc, kc
+
+    aldt = 1.0/al/dt
+
+    do ic=xstartr(3),xendr(3)
+        do jc=xstartr(2),xendr(2)
+            do kc=1,nxmr
+                htempr(kc,jc,ic) = htempr(kc,jc,ic) &
+                                + pf_S*rhsr(kc,jc,ic)*aldt
+            end do
+        end do
+    end do
+end subroutine AddLatentHeatr
+
+
+!> Calculate and save vertical profiles related to the temperature
 !! field, storing the data in means.h5
-subroutine CalcSalStats
-    real, dimension(nxmr) :: Sbar   !! Horizontally-averaged salinity
-    real, dimension(nxmr) :: Srms   !! Horizontally-averaged rms salinity
-    real, dimension(nxmr) :: chiS   !! Horizontally-averaged solutal dissipation rate (nu grad(S)^2)
+subroutine CalcTemprStats
+    real, dimension(nxmr) :: Trbar   !! Horizontally-averaged temperature
+    real, dimension(nxmr) :: Trrms   !! Horizontally-averaged rms temperature
+    real, dimension(nxmr) :: chiTr   !! Horizontally-averaged temperature dissipation rate (nu grad(S)^2)
     
-    real, dimension(nxmr) :: vxS    !! Advective flux of salinity (x)
-    real, dimension(nxmr) :: vyS    !! Advective flux of salinity (y)
-    real, dimension(nxmr) :: vzS    !! Advective flux of salinity (z)
+    real, dimension(nxmr) :: vxTr    !! Advective flux of salinity (x)
+    real, dimension(nxmr) :: vyTr    !! Advective flux of salinity (y)
+    real, dimension(nxmr) :: vzTr    !! Advective flux of salinity (z)
 
     real :: inyzmr      !! 1.0/nymr/nzmr
 
@@ -608,8 +628,8 @@ subroutine CalcSalStats
 
     filename = trim("outputdir/means.h5")
 
-    Sbar(:) = 0.0;  Srms(:) = 0.0;  chiS(:) = 0.0
-    vxS(:) = 0.0;   vyS(:) = 0.0;   vzS(:) = 0.0
+    Trbar(:) = 0.0;  Trrms(:) = 0.0;  chiTr(:) = 0.0
+    vxTr(:) = 0.0;   vyTr(:) = 0.0;   vzTr(:) = 0.0
 
     if (IBM) then
         do i=xstartr(3),xendr(3)
@@ -617,8 +637,8 @@ subroutine CalcSalStats
                 do k=1,nxmr
                     ! Only record data from fluid phase
                     if (.not. solidr(k,j,i)) then
-                        Sbar(k) = Sbar(k) + sal(k,j,i)
-                        Srms(k) = Srms(k) + sal(k,j,i)**2
+                        Trbar(k) = Trbar(k) + tempr(k,j,i)
+                        Trrms(k) = Trrms(k) + tempr(k,j,i)**2
                     end if
                 end do
             end do
@@ -627,8 +647,8 @@ subroutine CalcSalStats
         do i=xstartr(3),xendr(3)
             do j=xstartr(2),xendr(2)
                 do k=1,nxmr
-                    Sbar(k) = Sbar(k) + sal(k,j,i)
-                    Srms(k) = Srms(k) + sal(k,j,i)**2
+                    Trbar(k) = Trbar(k) + tempr(k,j,i)
+                    Trrms(k) = Trrms(k) + tempr(k,j,i)**2
                 end do
             end do
         end do
@@ -638,58 +658,58 @@ subroutine CalcSalStats
     do i=xstartr(3),xendr(3)
         do j=xstartr(2),xendr(2)
             do k=1,nxmr
-                vxS(k) = vxS(k) + 0.5*(vxr(k,j,i)+vxr(k+1,j,i))*sal(k,j,i)
-                vyS(k) = vyS(k) + 0.5*(vyr(k,j,i)+vyr(k,j+1,i))*sal(k,j,i)
-                vzS(k) = vzS(k) + 0.5*(vzr(k,j,i)+vzr(k,j,i+1))*sal(k,j,i)
+                vxTr(k) = vxTr(k) + 0.5*(vxr(k,j,i)+vxr(k+1,j,i))*tempr(k,j,i)
+                vyTr(k) = vyTr(k) + 0.5*(vyr(k,j,i)+vyr(k,j+1,i))*tempr(k,j,i)
+                vzTr(k) = vzTr(k) + 0.5*(vzr(k,j,i)+vzr(k,j,i+1))*tempr(k,j,i)
             end do
         end do
     end do
 
-    call CalcDissipationSal(chiS)
+    call CalcDissipationTempr(chiTr)
 
-    call MpiSumReal1D(Sbar, nxmr)
-    call MpiSumReal1D(Srms, nxmr)
-    call MpiSumReal1D(vxS,  nxmr)
-    call MpiSumReal1D(vyS,  nxmr)
-    call MpiSumReal1D(vzS,  nxmr)
-    call MpiSumReal1D(chiS, nxmr)
+    call MpiSumReal1D(Trbar, nxmr)
+    call MpiSumReal1D(Trrms, nxmr)
+    call MpiSumReal1D(vxTr,  nxmr)
+    call MpiSumReal1D(vyTr,  nxmr)
+    call MpiSumReal1D(vzTr,  nxmr)
+    call MpiSumReal1D(chiTr, nxmr)
 
     ! Turn sums into averages
-    ! (and root Srms & scale chi)
+    ! (and root Trrms & scale chi)
     do k=1,nxmr
-        Sbar(k) = Sbar(k)*inyzmr
-        Srms(k) = sqrt(Srms(k)*inyzmr)
-        vxS(k)  = vxS(k)*inyzmr
-        vyS(k)  = vyS(k)*inyzmr
-        vzS(k)  = vzS(k)*inyzmr
-        chiS(k) = chiS(k)/pecs*inyzmr
+        Trbar(k) = Trbar(k)*inyzmr
+        Trrms(k) = sqrt(Trrms(k)*inyzmr)
+        vxTr(k)  = vxTr(k)*inyzmr
+        vyTr(k)  = vyTr(k)*inyzmr
+        vzTr(k)  = vzTr(k)*inyzmr
+        chiTr(k) = chiTr(k)/pect*inyzmr
     end do
 
     ! Store index as character string
     write(nstat,"(i5.5)")nint(time/tout)
 
     if (ismaster) then
-        dsetname = trim("Sbar/"//nstat)
-        call HdfSerialWriteReal1D(dsetname, filename, Sbar, nxmr)
-        dsetname = trim("Srms/"//nstat)
-        call HdfSerialWriteReal1D(dsetname, filename, Srms, nxmr)
-        dsetname = trim("vxS/"//nstat)
-        call HdfSerialWriteReal1D(dsetname, filename, vxS, nxmr)
-        dsetname = trim("vyS/"//nstat)
-        call HdfSerialWriteReal1D(dsetname, filename, vyS, nxmr)
-        dsetname = trim("vzS/"//nstat)
-        call HdfSerialWriteReal1D(dsetname, filename, vzS, nxmr)
-        dsetname = trim("chiS/"//nstat)
-        call HdfSerialWriteReal1D(dsetname, filename, chiS, nxmr)
+        dsetname = trim("Trbar/"//nstat)
+        call HdfSerialWriteReal1D(dsetname, filename, Trbar, nxmr)
+        dsetname = trim("Trrms/"//nstat)
+        call HdfSerialWriteReal1D(dsetname, filename, Trrms, nxmr)
+        dsetname = trim("vxTr/"//nstat)
+        call HdfSerialWriteReal1D(dsetname, filename, vxTr, nxmr)
+        dsetname = trim("vyTr/"//nstat)
+        call HdfSerialWriteReal1D(dsetname, filename, vyTr, nxmr)
+        dsetname = trim("vzTr/"//nstat)
+        call HdfSerialWriteReal1D(dsetname, filename, vzTr, nxmr)
+        dsetname = trim("chiTr/"//nstat)
+        call HdfSerialWriteReal1D(dsetname, filename, chiTr, nxmr)
     end if
 
     call MpiBarrier
 
-end subroutine CalcSalStats
+end subroutine CalcTemprStats
 
-!> Calculate dissipation rate for salinity (on local process, no MPI action here)
-subroutine CalcDissipationSal(chiS)
-    real, dimension(:), intent(out) :: chiS
+!> Calculate dissipation rate for temperature (on local process, no MPI action here)
+subroutine CalcDissipationTempr(chiTr)
+    real, dimension(:), intent(out) :: chiTr
 
     integer :: i, ip, im
     integer :: j, jp, jm
@@ -713,34 +733,34 @@ subroutine CalcDissipationSal(chiS)
                 do k=1,nxmr
                     if (.not. solidr(k,j,i)) then
                         if (solidr(k,j,ip)) then
-                            chiS(k) = chiS(k) + ((sal(k,j,i ) - sal(k,j,im))*0.5*dzr)**2
+                            chiTr(k) = chiTr(k) + ((tempr(k,j,i ) - tempr(k,j,im))*0.5*dzr)**2
                         elseif (solidr(k,j,im)) then
-                            chiS(k) = chiS(k) + ((sal(k,j,ip) - sal(k,j,i ))*0.5*dzr)**2
+                            chiTr(k) = chiTr(k) + ((tempr(k,j,ip) - tempr(k,j,i ))*0.5*dzr)**2
                         else
-                            chiS(k) = chiS(k) + ((sal(k,j,ip) - sal(k,j,im))*0.5*dzr)**2
+                            chiTr(k) = chiTr(k) + ((tempr(k,j,ip) - tempr(k,j,im))*0.5*dzr)**2
                         end if
                         if (solidr(k,jp,i)) then
-                            chiS(k) = chiS(k) + ((sal(k,j ,i) - sal(k,jm,i))*0.5*dyr)**2
+                            chiTr(k) = chiTr(k) + ((tempr(k,j ,i) - tempr(k,jm,i))*0.5*dyr)**2
                         elseif (solidr(k,jm,i)) then
-                            chiS(k) = chiS(k) + ((sal(k,jp,i) - sal(k,j ,i))*0.5*dyr)**2
+                            chiTr(k) = chiTr(k) + ((tempr(k,jp,i) - tempr(k,j ,i))*0.5*dyr)**2
                         else
-                            chiS(k) = chiS(k) + ((sal(k,jp,i) - sal(k,jm,i))*0.5*dyr)**2
+                            chiTr(k) = chiTr(k) + ((tempr(k,jp,i) - tempr(k,jm,i))*0.5*dyr)**2
                         end if
                     end if
                 end do
                 if (.not. solidr(1,j,i)) then
-                    chiS(1) = chiS(1) + (( &
-                                sal(2,j,i) - sal(1,j,i) + 2.0*SfixS*(sal(1,j,i)-salbp(1,j,i))&
+                    chiTr(1) = chiTr(1) + (( &
+                                tempr(2,j,i) - tempr(1,j,i) + 2.0*TfixS*(tempr(1,j,i)-temprbp(1,j,i))&
                             )*tdxr(1))**2
                 end if
                 do k=2,nxmr-1
                     if (.not. solidr(k,j,i)) then
-                        chiS(k) = chiS(k) + ((sal(k+1,j,i) - sal(k-1,j,i))*tdxr(k))**2
+                        chiTr(k) = chiTr(k) + ((tempr(k+1,j,i) - tempr(k-1,j,i))*tdxr(k))**2
                     end if
                 end do
                 if (.not. solidr(nxmr,j,i)) then
-                    chiS(nxmr) = chiS(nxmr) + (( &
-                                    sal(nxmr,j,i) - sal(nxmr-1,j,i) + 2.0*SfixN*(saltp(1,j,i)-sal(nxmr,j,i)) &
+                    chiTr(nxmr) = chiTr(nxmr) + (( &
+                                    tempr(nxmr,j,i) - tempr(nxmr-1,j,i) + 2.0*TfixN*(temprtp(1,j,i)-tempr(nxmr,j,i)) &
                                 )*tdxr(nxmr))**2
                 end if
             end do
@@ -753,26 +773,26 @@ subroutine CalcDissipationSal(chiS)
                 jp = j + 1
                 jm = j - 1
                 do k=1,nxmr
-                    chiS(k) = chiS(k) + ((sal(k,j,ip)-sal(k,j,im))*0.5*dzr)**2
-                    chiS(k) = chiS(k) + ((sal(k,jp,i)-sal(k,jm,i))*0.5*dyr)**2
+                    chiTr(k) = chiTr(k) + ((tempr(k,j,ip)-tempr(k,j,im))*0.5*dzr)**2
+                    chiTr(k) = chiTr(k) + ((tempr(k,jp,i)-tempr(k,jm,i))*0.5*dyr)**2
                 end do
-                chiS(1) = chiS(1) + (( &
-                            sal(2,j,i) - sal(1,j,i) + 2.0*SfixS*(sal(1,j,i) - salbp(1,j,i)) &
+                chiTr(1) = chiTr(1) + (( &
+                            tempr(2,j,i) - tempr(1,j,i) + 2.0*TfixS*(tempr(1,j,i) - temprbp(1,j,i)) &
                         )*tdxr(1))**2
                 do k=2,nxmr-1
-                    chiS(k) = chiS(k) + ((sal(k+1,j,i) - sal(k-1,j,i))*tdxr(k))**2
+                    chiTr(k) = chiTr(k) + ((tempr(k+1,j,i) - tempr(k-1,j,i))*tdxr(k))**2
                 end do
-                chiS(nxmr) = chiS(nxmr) + (( &
-                            sal(nxmr,j,i) - sal(nxmr-1,j,i) + 2.0*SfixN*(saltp(1,j,i)-sal(nxmr,j,i)) &
+                chiTr(nxmr) = chiTr(nxmr) + (( &
+                            tempr(nxmr,j,i) - tempr(nxmr-1,j,i) + 2.0*TfixN*(temprtp(1,j,i)-tempr(nxmr,j,i)) &
                         )*tdxr(nxmr))**2
             end do
         end do
     end if
-end subroutine CalcDissipationSal
+end subroutine CalcDissipationTempr
 
 !> Create the groups in the means.h5 file to store the
 !! salinity-related statistics
-subroutine CreateSalinityH5Groups(filename)
+subroutine CreateTemprH5Groups(filename)
     use HDF5
     
     character(30), intent(in) :: filename
@@ -781,21 +801,21 @@ subroutine CreateSalinityH5Groups(filename)
 
     call h5fopen_f(filename, H5F_ACC_RDWR_F, file_id, hdf_error)
 
-    call h5gcreate_f(file_id, "Sbar", group_id, hdf_error)
+    call h5gcreate_f(file_id, "Trbar", group_id, hdf_error)
     call h5gclose_f(group_id, hdf_error)
-    call h5gcreate_f(file_id, "Srms", group_id, hdf_error)
+    call h5gcreate_f(file_id, "Trrms", group_id, hdf_error)
     call h5gclose_f(group_id, hdf_error)
-    call h5gcreate_f(file_id, "vxS", group_id, hdf_error)
+    call h5gcreate_f(file_id, "vxTr", group_id, hdf_error)
     call h5gclose_f(group_id, hdf_error)
-    call h5gcreate_f(file_id, "vyS", group_id, hdf_error)
+    call h5gcreate_f(file_id, "vyTr", group_id, hdf_error)
     call h5gclose_f(group_id, hdf_error)
-    call h5gcreate_f(file_id, "vzS", group_id, hdf_error)
+    call h5gcreate_f(file_id, "vzTr", group_id, hdf_error)
     call h5gclose_f(group_id, hdf_error)
-    call h5gcreate_f(file_id, "chiS", group_id, hdf_error)
+    call h5gcreate_f(file_id, "chiTr", group_id, hdf_error)
     call h5gclose_f(group_id, hdf_error)
 
     call h5fclose_f(file_id, hdf_error)
 
-end subroutine CreateSalinityH5Groups
+end subroutine CreateTemprH5Groups
 
 end module afid_tempr

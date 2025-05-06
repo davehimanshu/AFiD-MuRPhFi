@@ -17,6 +17,7 @@ subroutine CalcMeanProfiles
     use afid_salinity, only: CalcSalStats, CreateSalinityH5Groups
     use afid_moisture, only: CalcMoistStats, CreateMoistH5Groups
     use afid_phasefield, only: CalcPhiStats, CreatePhaseH5Groups
+    use afid_tempr, only: CalcTemprStats, CreateTemprH5Groups
     
     implicit none
 
@@ -216,6 +217,7 @@ subroutine CalcMeanProfiles
             if (salinity) call CreateSalinityH5Groups(filename)
             if (phasefield) call CreatePhaseH5Groups(filename)
             if (moist) call CreateMoistH5Groups(filename)
+            if (reftemp) call CreateTemprH5Groups(filename)
         end if
     end if
 
@@ -275,6 +277,8 @@ subroutine CalcMeanProfiles
     if (phasefield) call CalcPhiStats
 
     if (moist) call CalcMoistStats
+
+    if (reftemp) call CalcTemprStats
 
     call MpiBarrier
 

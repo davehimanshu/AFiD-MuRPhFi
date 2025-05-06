@@ -15,9 +15,6 @@ module afid_salinity
     real, allocatable, dimension(:,:,:) :: rusal    !! RK storage array for salinity (previous substep)
     real, allocatable, dimension(:,:,:) :: hsal     !! RK storage array for salinity
     real, allocatable, dimension(:,:,:) :: salc     !! Interpolated salinity field on coarse grid
-    real, allocatable, dimension(:,:,:) :: vxr      !! Velocity interpolated to refined grid (x component)
-    real, allocatable, dimension(:,:,:) :: vyr      !! Velocity interpolated to refined grid (y component)
-    real, allocatable, dimension(:,:,:) :: vzr      !! Velocity interpolated to refined grid (z component)
 
     real :: rays    !! Solutal Rayleigh number
     real :: pras    !! Schmidt number (solutal Prandtl number)
@@ -138,7 +135,7 @@ subroutine CreateInitialSalinity
         call AddSalinityNoise(amp=0.1, localised=.true., h0=0.5*alx3, extent=0.01)
 
     !! Bounded double-diffusive convection (begin with small amplitude noise + BLs)
-    else if ((active_S==1) .and. (active_T==1) .and. (gAxis==1)) then
+    else if ((active_S == 1) .and. ((active_T == 1) .or. (active_Tr == 1)) .and. (gAxis == 1)) then
         ! call SetZeroSalinity
         do i=xstartr(3),xendr(3)
             do j=xstartr(2),xendr(2)

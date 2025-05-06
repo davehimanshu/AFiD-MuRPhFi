@@ -101,12 +101,12 @@ subroutine InitMgrdVariables
     call AllocateReal2DArray(cytempc,1,4,1,nym)
     call AllocateReal2DArray(cztempc,1,4,1,nzm)
 
-    if (phasefield) .or. (reftemp) then
+    if (phasefield .or. reftemp) then
             ! Refined temperature array
             call AllocateReal3DArray(tempr,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
     end if
    
-    if (salinity) .or. (reftemp) then
+    if (salinity .or. reftemp) then
             call AllocateReal3DArray(vxr,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
             call AllocateReal3DArray(vyr,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)
             call AllocateReal3DArray(vzr,1,nxr,xstartr(2)-lvlhalo,xendr(2)+lvlhalo,xstartr(3)-lvlhalo,xendr(3)+lvlhalo)

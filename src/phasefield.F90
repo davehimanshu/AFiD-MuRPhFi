@@ -171,29 +171,55 @@ subroutine set_temperature_interface(h0, diffuse_above)
     ! x=0 at t=0
     t0 = PecT*(h0/2.0/Lambda)**2
 
-    do i=xstart(3),xend(3)
-        do j=xstart(2),xend(2)
-            do k=1,nxm
-                if (diffuse_above) then
-                    !! For the 1D supercooling example
-                    if (xm(k) > h0) then
-                        temp(k,j,i) = erfc(xm(k)*sqrt(pect/t0)/2.0)/erfc(Lambda)
-                    else
-                        temp(k,j,i) = 1.0
-                    end if
-                else
-                    !! For the 1D freezing example
-                    if (xm(k) < h0) then
-                        temp(k,j,i) = erf(xm(k)*sqrt(pect/t0)/2)/erf(Lambda)
-                    else
-                        temp(k,j,i) = 1.0
-                    end if
-                    !! For the 1D melting case
-                    if (RayT > 0) temp(k,j,i) = 1.0 - temp(k,j,i)
-                end if
+    if (reftemp) then
+             do i=xstartr(3),xendr(3)
+                do j=xstartr(2),xendr(2)
+                    do k=1,nxmr
+                        if (diffuse_above) then
+                            !! For the 1D supercooling example
+                            if (xmr(k) > h0) then
+                                tempr(k,j,i) = erfc(xmr(k)*sqrt(pect/t0)/2.0)/erfc(Lambda)
+                            else
+                                tempr(k,j,i) = 1.0
+                            end if
+                        else
+                            !! For the 1D freezing example
+                            if (xmr(k) < h0) then
+                                tempr(k,j,i) = erf(xmr(k)*sqrt(pect/t0)/2)/erf(Lambda)
+                            else
+                                tempr(k,j,i) = 1.0
+                            end if
+                            !! For the 1D melting case
+                            if (RayT > 0) tempr(k,j,i) = 1.0 - tempr(k,j,i)
+                        end if
+                    end do
+                end do
+            end do          
+    else    
+            do i=xstart(3),xend(3)
+                do j=xstart(2),xend(2)
+                    do k=1,nxm
+                        if (diffuse_above) then
+                            !! For the 1D supercooling example
+                            if (xm(k) > h0) then
+                                temp(k,j,i) = erfc(xm(k)*sqrt(pect/t0)/2.0)/erfc(Lambda)
+                            else
+                                temp(k,j,i) = 1.0
+                            end if
+                        else
+                            !! For the 1D freezing example
+                            if (xm(k) < h0) then
+                                temp(k,j,i) = erf(xm(k)*sqrt(pect/t0)/2)/erf(Lambda)
+                            else
+                                temp(k,j,i) = 1.0
+                            end if
+                            !! For the 1D melting case
+                            if (RayT > 0) temp(k,j,i) = 1.0 - temp(k,j,i)
+                        end if
+                    end do
+                end do
             end do
-        end do
-    end do
+    end if
 end subroutine set_temperature_interface
 
 !> Set temperature and salinity profiles to a diffusive boundary layer below
@@ -217,17 +243,32 @@ subroutine set_multicomponent_interface(x0, h0)
             end do
         end do
     end do
-    do i=xstart(3),xend(3)
-        do j=xstart(2),xend(2)
-            do k=1,nxm
-                if (xm(k) <= h0) then
-                    temp(k,j,i) = 1 - A*erfc((x0 - xm(k))/sqrt(t0)/2.0)
-                else
-                    temp(k,j,i) = 1 - A*erfc(-alpha)
-                end if
+    if (reftemp) then
+            do i=xstartr(3),xendr(3)
+                do j=xstartr(2),xendr(2)
+                    do k=1,nxmr
+                        if (xmr(k) <= h0) then
+                            tempr(k,j,i) = 1 - A*erfc((x0 - xmr(k))/sqrt(t0)/2.0)
+                        else
+                            tempr(k,j,i) = 1 - A*erfc(-alpha)
+                        end if
+                    end do
+                end do
             end do
-        end do
-    end do
+    else 
+            do i=xstart(3),xend(3)
+                do j=xstart(2),xend(2)
+                    do k=1,nxm
+                        if (xm(k) <= h0) then
+                            temp(k,j,i) = 1 - A*erfc((x0 - xm(k))/sqrt(t0)/2.0)
+                        else
+                            temp(k,j,i) = 1 - A*erfc(-alpha)
+                        end if
+                    end do
+                end do
+            end do
+           
+    end if
 end subroutine set_multicomponent_interface
 
 !> Add a modal perturbation to the temperature field in the lower half of the domain
@@ -241,30 +282,56 @@ subroutine add_temperature_mode(amp, ymode, zmode, h0)
     real, intent(in) :: h0          !! initial interface height
     integer :: i, j, k
     real :: xxx, yyy, zzz
-
-    do i=xstart(3),xend(3)
-        zzz = zm(i)/zlen
-        do j=xstart(2),xend(2)
-            yyy = ym(j)/ylen
-            if (nzm > 1) then
-                do k=1,nxm ! If domain 3D, add in z perturbation too
-                    xxx = xm(k)
-                    if (xxx < h0) then
-                        temp(k,j,i) = temp(k,j,i) &
-                            + amp*sin(2.0*pi*ymode*yyy)*cos(2.0*pi*zmode*zzz)*sin(pi*xxx/h0)**2
+    
+    if (reftemp) then
+            do i=xstartr(3),xendr(3)
+                zzz = zmr(i)/zlen
+                do j=xstartr(2),xendr(2)
+                    yyy = ymr(j)/ylen
+                    if (nzmr > 1) then
+                        do k=1,nxmr ! If domain 3D, add in z perturbation too
+                            xxx = xmr(k)
+                            if (xxx < h0) then
+                                tempr(k,j,i) = tempr(k,j,i) &
+                                    + amp*sin(2.0*pi*ymode*yyy)*cos(2.0*pi*zmode*zzz)*sin(pi*xxx/h0)**2
+                            end if
+                        end do
+                    else
+                        do k=1,nxmr
+                            xxx = xmr(k)
+                            if (xxx < h0) then
+                                tempr(k,j,i) = tempr(k,j,i) &
+                                    + amp*sin(4.0*pi*yyy)*((sin(2.0*pi*xxx))**2)
+                            end if
+                        end do
                     end if
                 end do
-            else
-                do k=1,nxm
-                    xxx = xm(k)
-                    if (xxx < h0) then
-                        temp(k,j,i) = temp(k,j,i) &
-                            + amp*sin(4.0*pi*yyy)*((sin(2.0*pi*xxx))**2)
+            end do           
+    else
+            do i=xstart(3),xend(3)
+                zzz = zm(i)/zlen
+                do j=xstart(2),xend(2)
+                    yyy = ym(j)/ylen
+                    if (nzm > 1) then
+                        do k=1,nxm ! If domain 3D, add in z perturbation too
+                            xxx = xm(k)
+                            if (xxx < h0) then
+                                temp(k,j,i) = temp(k,j,i) &
+                                    + amp*sin(2.0*pi*ymode*yyy)*cos(2.0*pi*zmode*zzz)*sin(pi*xxx/h0)**2
+                            end if
+                        end do
+                    else
+                        do k=1,nxm
+                            xxx = xm(k)
+                            if (xxx < h0) then
+                                temp(k,j,i) = temp(k,j,i) &
+                                    + amp*sin(4.0*pi*yyy)*((sin(2.0*pi*xxx))**2)
+                            end if
+                        end do
                     end if
                 end do
-            end if
-        end do
-    end do
+            end do
+    end if
 end subroutine add_temperature_mode
 
 !> Add an ice disc at the centre of the domain of radius r0
@@ -277,14 +344,25 @@ subroutine set_ice_disc(r0)
     integer :: i, j, k
 
     ! Temperature field (0 in disc, 1 out of disc, tanh interface width approx 1e-2)
-    do i=xstart(3),xend(3)
-        do j=xstart(2),xend(2)
-            do k=1,nxm
-                r = sqrt((xm(k) - 0.5*alx3)**2 + (ym(j) - 0.5*ylen)**2)
-                temp(k,j,i) = 0.5*(1.0 + tanh(100.0*(r - r0)))
+    if (reftemp) then
+            do i=xstartr(3),xendr(3)
+                do j=xstartr(2),xendr(2)
+                    do k=1,nxmr
+                        r = sqrt((xmr(k) - 0.5*alx3)**2 + (ymr(j) - 0.5*ylen)**2)
+                        tempr(k,j,i) = 0.5*(1.0 + tanh(100.0*(r - r0)))
+                    end do
+                end do
             end do
-        end do
-    end do
+    else    
+            do i=xstart(3),xend(3)
+                do j=xstart(2),xend(2)
+                    do k=1,nxm
+                        r = sqrt((xm(k) - 0.5*alx3)**2 + (ym(j) - 0.5*ylen)**2)
+                        temp(k,j,i) = 0.5*(1.0 + tanh(100.0*(r - r0)))
+                    end do
+                end do
+            end do
+    end if
     ! Phase-field (0 out of disc, 1 in disc)
     do i=xstartr(3),xendr(3)
         do j=xstartr(2),xendr(2)
@@ -306,19 +384,35 @@ subroutine set_ice_sphere(r0)
     integer :: i, j, k
 
     ! Temperature field (0 in disc, 1 out of disc, tanh interface width approx 1e-2)
-    do i=xstart(3),xend(3)
-        do j=xstart(2),xend(2)
-            do k=1,nxm
-                r = sqrt((xm(k) - 0.5*alx3)**2 + (ym(j) - 0.5*ylen)**2 + (zm(i) - 0.5*zlen)**2)
-                ! temp(k,j,i) = 0.5*(1.0 + tanh(100.0*(r - r0)))
-                if (r > r0) then
-                    temp(k,j,i) = 1.0
-                else
-                    temp(k,j,i) = 0.0
-                end if
+    if (reftemp) then
+            do i=xstartr(3),xendr(3)
+                do j=xstartr(2),xendr(2)
+                    do k=1,nxmr
+                        r = sqrt((xmr(k) - 0.5*alx3)**2 + (ymr(j) - 0.5*ylen)**2 + (zmr(i) - 0.5*zlen)**2)
+                        ! temp(k,j,i) = 0.5*(1.0 + tanh(100.0*(r - r0)))
+                        if (r > r0) then
+                            tempr(k,j,i) = 1.0
+                        else
+                            tempr(k,j,i) = 0.0
+                        end if
+                    end do
+                end do
             end do
-        end do
-    end do
+    else    
+            do i=xstart(3),xend(3)
+                do j=xstart(2),xend(2)
+                    do k=1,nxm
+                        r = sqrt((xm(k) - 0.5*alx3)**2 + (ym(j) - 0.5*ylen)**2 + (zm(i) - 0.5*zlen)**2)
+                        ! temp(k,j,i) = 0.5*(1.0 + tanh(100.0*(r - r0)))
+                        if (r > r0) then
+                            temp(k,j,i) = 1.0
+                        else
+                            temp(k,j,i) = 0.0
+                        end if
+                    end do
+                end do
+            end do
+    end if
     ! Phase-field (0 out of disc, 1 in disc)
     do i=xstartr(3),xendr(3)
         do j=xstartr(2),xendr(2)

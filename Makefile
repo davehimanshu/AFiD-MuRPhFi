@@ -1,7 +1,7 @@
 # Choose the machine being used
 # Options: PC, SNELLIUS, IRENE, MARENOSTRUM, SUPERMUC, DISCOVERER
-MACHINE=Swan
-FLAVOUR=GNU
+MACHINE=Viper
+FLAVOUR=Intel
 # Modules required for each HPC system as follows:
 # SNELLIUS:
 #	GNU: 2022 foss/2022a HDF5/1.12.2-gompi-2022a
@@ -195,6 +195,8 @@ $(OBJDIR)/IBMTools.o: src/ibm/IBMTools.F90
 $(OBJDIR)/salinity.o: src/salinity.F90
 	$(FC) -c -o $@ $<
 $(OBJDIR)/phasefield.o: src/phasefield.F90 obj/salinity.o
+	$(FC) -c -o $@ $<
+$(OBJDIR)/temperature_r.o: src/temperature_r.F90 obj/phasefield.o
 	$(FC) -c -o $@ $<
 $(OBJDIR)/moisture.o: src/moisture.F90
 	$(FC) -c -o $@ $<
