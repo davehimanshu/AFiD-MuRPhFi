@@ -1,7 +1,7 @@
 # Choose the machine being used
 # Options: PC, SNELLIUS, IRENE, MARENOSTRUM, SUPERMUC, DISCOVERER
-MACHINE=Emmy
-FLAVOUR=Intel
+MACHINE=Swan
+FLAVOUR=GNU
 # Modules required for each HPC system as follows:
 # SNELLIUS:
 #	GNU: 2022 foss/2022a HDF5/1.12.2-gompi-2022a

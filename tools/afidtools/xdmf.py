@@ -239,7 +239,7 @@ def interpolate_field_to_uniform(folder, var, scale=2):
     if var=="vx":
         xs = grid.xc
         nyu, nzu = grid.ym.size//scale, grid.zm.size//scale
-    elif var=="sal" or var=="phi":
+    elif var=="sal" or var=="phi" or var=="tempr":
         xs = grid.xmr
         nyu, nzu = grid.ymr.size//scale, grid.zmr.size//scale
     else:
@@ -247,7 +247,7 @@ def interpolate_field_to_uniform(folder, var, scale=2):
         nyu, nzu = grid.ym.size//scale, grid.zm.size//scale
     filelist = sorted(os.listdir(folder+"/outputdir/fields"))
     fvlist = list(filter(lambda fname: var in fname, filelist))
-    if var=="phi" or var=="sal":
+    if var=="phi" or var=="sal" or var=="tempr":
         Funi = zeros((nzu, nyu, nxur), dtype=float32)
     else:
         Funi = zeros((nzu, nyu, nxu), dtype=float32)
@@ -262,7 +262,7 @@ def interpolate_field_to_uniform(folder, var, scale=2):
             else:
                 itp = interp1d(xs, F[:,:-1], kind='cubic', axis=-1)
             
-            if var=="sal" or var=="phi":
+            if var=="sal" or var=="phi" or var=="tempr":
                 Funi[k,:,:] = itp(xur)
             else:
                 Funi[k,:,:] = itp(xu)
@@ -400,7 +400,7 @@ def generate_multi_var_xmf(folder, vars, scale_ps=2, scale_vt=2):
     grid = Grid(folder)
     inputs = InputParams(folder)
 
-    if any(var in ["phi", "sal"] for var in vars):
+    if any(var in ["phi", "sal", "tempr"] for var in vars):
         scale = scale_ps
         nxmr, nymr, nzmr = grid.xmr.size, grid.ymr.size, grid.zmr.size
         nxur, nyur, nzur = nxmr // scale, nymr // scale, nzmr // scale

@@ -30,9 +30,9 @@ end_idx = np.searchsorted(t, t_end)
 #---------------------------------------------------------------------------------------#
 # calculate mean values of Temperature and velocity and obtain temperature fluctuations #
 #---------------------------------------------------------------------------------------#
-Sbar = afid.read_mean(simdir, 'Sbar')
-Srms = afid.read_mean(simdir, 'Srms')
-Srms_fluc = np.sqrt(Srms**2 - Sbar**2)
+Trbar = afid.read_mean(simdir, 'Trbar')
+Trrms = afid.read_mean(simdir, 'Trrms')
+Trrms_fluc = np.sqrt(Trrms**2 - Trbar**2)
 vyrms = afid.read_mean(simdir, 'vyrms')
 vzrms = afid.read_mean(simdir, 'vzrms')
 vxrms = afid.read_mean(simdir, 'vxrms')
@@ -42,22 +42,22 @@ vxrms = afid.read_mean(simdir, 'vxrms')
 #--------------------------------- Nusselt number ---------------------------------#
 #----------------------------------------------------------------------------------#
 # Calculate Nusselt numbers at lower and upper plates
-Nu_pl = -(Sbar[0,:] - 0.5)/grid.xmr[0]
-Nu_pu = -(-0.5 - Sbar[-1,:])/(1.0 - grid.xmr[-1])
+Nu_pl = -(Trbar[0,:] - 0.5)/grid.xmr[0]
+Nu_pu = -(-0.5 - Trbar[-1,:])/(1.0 - grid.xmr[-1])
 
 # Define the Peclet number
-Pec = (inputs.RayS*inputs.PraS)**0.5
+Pec = (inputs.RayT*inputs.PraT)**0.5
 
 # Calculate Nusselt number from scalar dissipation rate
-chiS = afid.read_mean(simdir, 'chiS')
-Nu_chi = afid.xmean(chiS, grid.xcr)*Pec
+chiTr = afid.read_mean(simdir, 'chiTr')
+Nu_chi = afid.xmean(chiTr, grid.xcr)*Pec
 
 # Calcuate Nusselt number from KE dissipation rate
 #epsilon = afid.read_mean(simdir, 'epsilon')
 #Nu_eps = 1.0 + afid.xmean(epsilon, grid.xc)*Pec
 
 # Calculate Nusselt number from global turbulent heat flux
-xT = afid.read_mean(simdir, 'vxS')
+xT = afid.read_mean(simdir, 'vxTr')
 Nu_vol = 1.0 + afid.xmean(xT, grid.xcr)*Pec
 
 # Make the time series plot for Nusselt numbers
@@ -95,63 +95,63 @@ print(f"Nu_vol_avg: {Nu_vol_avg}")
 #----------------------------------------------------------------------------------#
 #
 #----------------------------------------------------------------------------------#
-##--------------------------------- Reynolds number --------------------------------#
-##----------------------------------------------------------------------------------#
-## Define the dimensionless inverse of viscosity
-#inu = (inputs.RayT/inputs.PraT)**0.5
-#
-## Compute the Reynolds number based on vertical KE
-#Re_v = afid.xmean(vxrms**2, grid.xc)**0.5*inu
-#
-## Compute the Reynolds number based on horizontal KE
-#Re_h = afid.xmean(vyrms**2 + vzrms**2, grid.xc)**0.5*inu
-#
-## Make the time series plot
-#fig, ax = plt.subplots(figsize=(6.0,2.0), layout='constrained')
-#ax.plot(t, Re_v, label='vertical')
-#ax.plot(t, Re_h, label='horizontal')
-#Re_t = (Re_h**2 + Re_v**2)**0.5
-#ax.plot(t, Re_t, label='total')
-#ax.grid()
-#ax.legend()
-#ax.set(
-#    xlim=[0,t[-1]],
-#    ylim=[0,150],
-#    xlabel='$t/(H/U_f)$',
-#    ylabel=r'$Re = \sqrt{2\mathcal{K}} H / \nu$'
-#)
-#fig.savefig('Reynolds.png')
-##----------------------------------------------------------------------------------#
-#
-##----------------------------------------------------------------------------------#
-##--------------------------------- Averaged Reynolds number -----------------------#
-##----------------------------------------------------------------------------------#
-## Calculate the averaged Reynolds numbers
-#Re_v_avg = np.mean(Re_v[start_idx:end_idx])
-#Re_h_avg = np.mean(Re_h[start_idx:end_idx])
-#Re_t_avg = np.mean(Re_t[start_idx:end_idx])
-#
-#print(f"Averaged Reynolds numbers between t={t_start} and t={t_end}:")
-#print(f"Re_v_avg: {Re_v_avg}")
-#print(f"Re_h_avg: {Re_h_avg}")
-#print(f"Re_t_avg: {Re_t_avg}")
-##----------------------------------------------------------------------------------#
+#--------------------------------- Reynolds number --------------------------------#
+#----------------------------------------------------------------------------------#
+# Define the dimensionless inverse of viscosity
+inu = (inputs.RayT/inputs.PraT)**0.5
+
+# Compute the Reynolds number based on vertical KE
+Re_v = afid.xmean(vxrms**2, grid.xc)**0.5*inu
+
+# Compute the Reynolds number based on horizontal KE
+Re_h = afid.xmean(vyrms**2 + vzrms**2, grid.xc)**0.5*inu
+
+# Make the time series plot
+fig, ax = plt.subplots(figsize=(6.0,2.0), layout='constrained')
+ax.plot(t, Re_v, label='vertical')
+ax.plot(t, Re_h, label='horizontal')
+Re_t = (Re_h**2 + Re_v**2)**0.5
+ax.plot(t, Re_t, label='total')
+ax.grid()
+ax.legend()
+ax.set(
+    xlim=[0,t[-1]],
+    ylim=[0,150],
+    xlabel='$t/(H/U_f)$',
+    ylabel=r'$Re = \sqrt{2\mathcal{K}} H / \nu$'
+)
+fig.savefig('Reynolds.png')
+#----------------------------------------------------------------------------------#
+
+#----------------------------------------------------------------------------------#
+#--------------------------------- Averaged Reynolds number -----------------------#
+#----------------------------------------------------------------------------------#
+# Calculate the averaged Reynolds numbers
+Re_v_avg = np.mean(Re_v[start_idx:end_idx])
+Re_h_avg = np.mean(Re_h[start_idx:end_idx])
+Re_t_avg = np.mean(Re_t[start_idx:end_idx])
+
+print(f"Averaged Reynolds numbers between t={t_start} and t={t_end}:")
+print(f"Re_v_avg: {Re_v_avg}")
+print(f"Re_h_avg: {Re_h_avg}")
+print(f"Re_t_avg: {Re_t_avg}")
+#----------------------------------------------------------------------------------#
 
 #----------------------------------------------------------------------------------#
 #------------------------Calculate average profiles over time ---------------------#
 #----------------------------------------------------------------------------------#
 # Calculate the time-averaged profiles for vyrms and vzrms
 vyrms_avg = np.mean(vyrms[:, start_idx:end_idx], axis=1)
-#vzrms_avg = np.mean(vzrms[:, start_idx:end_idx], axis=1)
-Srms_fluc_avg = np.mean(Srms_fluc[:, start_idx:end_idx], axis=1)
+vzrms_avg = np.mean(vzrms[:, start_idx:end_idx], axis=1)
+Trrms_fluc_avg = np.mean(Trrms_fluc[:, start_idx:end_idx], axis=1)
 
 # Obtain the average horizontal profile from the above calculate profiles
-#vhrms_avg = (vyrms_avg + vzrms_avg)*0.5
-vhrms_avg = (vyrms_avg)
+vhrms_avg = (vyrms_avg + vzrms_avg)*0.5
+#vhrms_avg = (vyrms_avg)
 # Plot the averaged profiles
 fig3, ax3 = plt.subplots(figsize=(6.0,6.0), layout='constrained')
 ax3.plot(grid.xm, vhrms_avg, label='vhrms_avg')
-ax3.plot(grid.xmr, Srms_fluc_avg, label='Trms_fluc_avg')
+ax3.plot(grid.xmr, Trrms_fluc_avg, label='Trms_fluc_avg')
 ax3.set(
     xlim=[0, 1],
     xlabel='xm',
@@ -164,17 +164,17 @@ fig3.savefig('Velocity_Temp_RMS_Avg.png')
 
 # Assume symmetry and calculate the average of the top and bottom halves
 half_len = len(vyrms_avg) // 2
-half_lenr = len(Srms_fluc_avg) // 2
+half_lenr = len(Trrms_fluc_avg) // 2
 vyrms_avg_sym = (vyrms_avg[:half_len] + vyrms_avg[-1:-half_len-1:-1]) * 0.5
-#vzrms_avg_sym = (vzrms_avg[:half_len] + vzrms_avg[-1:-half_len-1:-1]) * 0.5
-S_fluc_avg_sym = (Srms_fluc_avg[:half_lenr] + Srms_fluc_avg[-1:-half_lenr-1:-1]) * 0.5
+vzrms_avg_sym = (vzrms_avg[:half_len] + vzrms_avg[-1:-half_len-1:-1]) * 0.5
+Tr_fluc_avg_sym = (Trrms_fluc_avg[:half_lenr] + Trrms_fluc_avg[-1:-half_lenr-1:-1]) * 0.5
 # Update the horizontal profile accordingly
-#vhrms_avg_sym = (vyrms_avg_sym + vzrms_avg_sym) * 0.5
-vhrms_avg_sym = (vyrms_avg_sym)
+vhrms_avg_sym = (vyrms_avg_sym + vzrms_avg_sym) * 0.5
+#vhrms_avg_sym = (vyrms_avg_sym)
 # Plot the averaged symmetrical profiles
 fig4, ax4 = plt.subplots(figsize=(6.0,6.0), layout='constrained')
 ax4.plot(grid.xm[:half_len], vhrms_avg_sym, '-o', label='vh_rms_avg_sym')
-ax4.plot(grid.xmr[:half_lenr], S_fluc_avg_sym, '-s', label='Temp_fluc_avg_sym')
+ax4.plot(grid.xmr[:half_lenr], Tr_fluc_avg_sym, '-s', label='Temp_fluc_avg_sym')
 ax4.set(
     xlim=[0, 0.1],
     xlabel='xm',
@@ -186,73 +186,73 @@ ax4.grid()
 fig4.savefig('Velocity_Temp_RMS_Avg_Sym.png')
 #----------------------------------------------------------------------------------#
 
-##----------------------------------------------------------------------------------#
-##------------------------Calculate maxima using gradient ascent -------------------#
-##----------------------------------------------------------------------------------#
-#def gradient_ascent(y, x, learning_rate=0.005, tolerance=1e-7, max_iter=2000):
-#   
-#    """
-#    Perform gradient ascent to find the maximum of a function given x and y arrays.
-#
-#    Args:
-#        x (np.ndarray): Array of independent variable values.
-#        y (np.ndarray): Array of dependent variable values (function values).
-#        learning_rate (float): Step size for gradient ascent.
-#        tolerance (float): Convergence tolerance.
-#        max_iter (int): Maximum number of iterations.
-#
-#    Returns:
-#        np.ndarray: Array containing the x and y values of the maximum [x_max, y_max].
-#    """
-# 
-#    # Ensure inputs are numpy arrays
-#    x = np.array(x)
-#    y = np.array(y)
-#
-#    # Initial guess for x
-#    x_current = x[np.argmax(y)]  # Start near the highest observed point
-#
-#    for _ in range(max_iter):
-#        # Estimate the gradient using finite differences
-#        idx = np.searchsorted(x, x_current)
-#        if idx <= 0 or idx >= len(x) - 1:
-#            break  # Exit if gradient can't be computed
-#
-#        gradient = (y[idx + 1] - y[idx - 1]) / (x[idx + 1] - x[idx - 1])
-#
-#        # Update x using the gradient
-#        x_next = x_current + learning_rate * gradient
-#
-#        # Check for convergence
-#        if abs(x_next - x_current) < tolerance:
-#            break
-#
-#        x_current = x_next
-#
-#    # Find the corresponding y value
-#    y_max = np.interp(x_current, x, y)
-#
-#    return np.array([x_current, y_max])
-#
-## Find maxima using gradient ascent
-#vhrms_max_idx = gradient_ascent(vhrms_avg_sym, grid.xm[:half_len])
-#print(f"The viscous boundary layer is: {vhrms_max_idx[0]}")
-#Temp_fluc_max_idx = gradient_ascent(Temp_fluc_avg_sym, grid.xm[:half_len])
-#print(f"The thermal boundary layer value is: {Temp_fluc_max_idx[0]}")
-#
-## Plot the maxima
-#fig5, ax5 = plt.subplots(figsize=(6.0,6.0), layout='constrained')
-#ax5.plot(grid.xm[:half_len], vhrms_avg_sym, label='vh_rms_avg_sym')
-#ax5.plot(grid.xm[:half_len], Temp_fluc_avg_sym, label='Temp_fluc_avg_sym')
-#ax5.scatter(vhrms_max_idx[0], vhrms_max_idx[1], color='red', label='vh_rms_max')
-#ax5.scatter(Temp_fluc_max_idx[0], Temp_fluc_max_idx[1], color='blue', label='Temp_fluc_max')
-#ax5.set(
-#    xlim=[0, grid.xm[half_len-1]],
-#    xlabel='xm',
-#    ylabel='Value',
-#    title='Maxima of Time-averaged Symmetrical Profiles'
-#)
-#ax5.legend()
-#ax5.grid()
-#fig5.savefig('Maxima_Profiles.png')
-##----------------------------------------------------------------------------------#
+#----------------------------------------------------------------------------------#
+#------------------------Calculate maxima using gradient ascent -------------------#
+#----------------------------------------------------------------------------------#
+def gradient_ascent(y, x, learning_rate=0.005, tolerance=1e-7, max_iter=2000):
+   
+    """
+    Perform gradient ascent to find the maximum of a function given x and y arrays.
+
+    Args:
+        x (np.ndarray): Array of independent variable values.
+        y (np.ndarray): Array of dependent variable values (function values).
+        learning_rate (float): Step size for gradient ascent.
+        tolerance (float): Convergence tolerance.
+        max_iter (int): Maximum number of iterations.
+
+    Returns:
+        np.ndarray: Array containing the x and y values of the maximum [x_max, y_max].
+    """
+ 
+    # Ensure inputs are numpy arrays
+    x = np.array(x)
+    y = np.array(y)
+
+    # Initial guess for x
+    x_current = x[np.argmax(y)]  # Start near the highest observed point
+
+    for _ in range(max_iter):
+        # Estimate the gradient using finite differences
+        idx = np.searchsorted(x, x_current)
+        if idx <= 0 or idx >= len(x) - 1:
+            break  # Exit if gradient can't be computed
+
+        gradient = (y[idx + 1] - y[idx - 1]) / (x[idx + 1] - x[idx - 1])
+
+        # Update x using the gradient
+        x_next = x_current + learning_rate * gradient
+
+        # Check for convergence
+        if abs(x_next - x_current) < tolerance:
+            break
+
+        x_current = x_next
+
+    # Find the corresponding y value
+    y_max = np.interp(x_current, x, y)
+
+    return np.array([x_current, y_max])
+
+# Find maxima using gradient ascent
+vhrms_max_idx = gradient_ascent(vhrms_avg_sym, grid.xm[:half_len])
+print(f"The viscous boundary layer is: {vhrms_max_idx[0]}")
+Temp_fluc_max_idx = gradient_ascent(Tr_fluc_avg_sym, grid.xmr[:half_lenr])
+print(f"The thermal boundary layer value is: {Temp_fluc_max_idx[0]}")
+
+# Plot the maxima
+fig5, ax5 = plt.subplots(figsize=(6.0,6.0), layout='constrained')
+ax5.plot(grid.xm[:half_len], vhrms_avg_sym, label='vh_rms_avg_sym')
+ax5.plot(grid.xmr[:half_lenr], Tr_fluc_avg_sym, label='Temp_fluc_avg_sym')
+ax5.scatter(vhrms_max_idx[0], vhrms_max_idx[1], color='red', label='vh_rms_max')
+ax5.scatter(Temp_fluc_max_idx[0], Temp_fluc_max_idx[1], color='blue', label='Temp_fluc_max')
+ax5.set(
+    xlim=[0, grid.xm[half_len-1]],
+    xlabel='xm',
+    ylabel='Value',
+    title='Maxima of Time-averaged Symmetrical Profiles'
+)
+ax5.legend()
+ax5.grid()
+fig5.savefig('Maxima_Profiles.png')
+#----------------------------------------------------------------------------------#

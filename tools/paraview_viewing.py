@@ -1,13 +1,13 @@
 import afidtools as afid
 import numpy as np
 folder = "/scratch/seismo/dave/Pr_10/Ro_0.1"
-vars = ["vx", "vy", "vz", "temp", "phi"]
+vars = ["vx", "vy", "vz", "temp", "phi", "tempr"]
 scale_ps = 2
 scale_vt = 1
 
 
 for var in vars:
-    if var == "phi" or var == "sal":
+    if var == "phi" or var == "sal" or var == "tempr":
         afid.interpolate_field_to_uniform(folder, var, scale=2)
         print("Interpolated "+var+" to uniform")
         #afid.generate_uniform_xmf(folder, var, scale=2)
