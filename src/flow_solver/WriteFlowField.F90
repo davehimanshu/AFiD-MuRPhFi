@@ -17,7 +17,7 @@ subroutine WriteFlowField(final)
     use afid_moisture, only: humid
     implicit none
     logical, intent(in) :: final
-    character(30) :: filnam1,dsetname,basename
+    character(100) :: filnam1,dsetname,basename
     character(5)  :: frame
     
     basename='outputdir/continua'

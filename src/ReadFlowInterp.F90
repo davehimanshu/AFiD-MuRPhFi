@@ -157,7 +157,7 @@ subroutine ReadFlowInterp(prow,pcol)
         end if
         if (reftemp) then
             call HdfReadContinua(nzr, nyr, nxr, xstartr(2), xendr(2), &
-                                xstartr(3), xendr(3), 5, tempr)
+                                xstartr(3), xendr(3), 9, tempr)
         end if
         if (phasefield) then
             call HdfReadContinua(nzr, nyr, nxr, xstartr(2), xendr(2), &

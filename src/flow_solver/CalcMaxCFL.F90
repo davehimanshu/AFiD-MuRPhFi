@@ -45,7 +45,7 @@ subroutine CalcMaxCFL(cflm,cflmr)
     
     call MpiAllMaxRealScalar(cflm)
     
-    if (salinity) then
+    if (salinity .or. reftemp) then
         ! Refined mesh
         
         cflmr = 1.d-8
