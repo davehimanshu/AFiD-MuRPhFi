@@ -1,7 +1,7 @@
 # Choose the machine being used
 # Options: PC, SNELLIUS, IRENE, MARENOSTRUM, SUPERMUC, DISCOVERER
-MACHINE=Swan
-FLAVOUR=GNU
+MACHINE=Emmy
+FLAVOUR=Intel
 # Modules required for each HPC system as follows:
 # SNELLIUS:
 #	GNU: 2022 foss/2022a HDF5/1.12.2-gompi-2022a
@@ -32,7 +32,7 @@ OBJDIR=obj
 ifeq ($(FLAVOUR),GNU)
 	FC = h5pfc -cpp -fdefault-real-8 -fdefault-double-8 -fallow-argument-mismatch
 else
-	FC = h5pfc -fpp -r8
+	FC = h5pfc -fpp -r8 -O3 -xHost -qopt-zmm-usage=high -fp-model fast=2 -ipo -qopt-report=5 -qopt-report-phase=vec -align array64byte
 endif
 
 ifeq ($(MACHINE),PC)

@@ -282,6 +282,7 @@ subroutine add_temperature_mode(amp, ymode, zmode, h0)
     real, intent(in) :: h0          !! initial interface height
     integer :: i, j, k
     real :: xxx, yyy, zzz
+    real:: noise, r, base_val
     
     if (reftemp) then
             do i=xstartr(3),xendr(3)
@@ -292,16 +293,30 @@ subroutine add_temperature_mode(amp, ymode, zmode, h0)
                         do k=1,nxmr ! If domain 3D, add in z perturbation too
                             xxx = xmr(k)
                             if (xxx < h0) then
-                                tempr(k,j,i) = tempr(k,j,i) &
-                                    + amp*sin(2.0*pi*ymode*yyy)*cos(2.0*pi*zmode*zzz)*sin(pi*xxx/h0)**2
+                                base_val = tempr(k,j,i)
+                                call random_number(r)
+                                noise = amp * (2.0 * r - 1.0)
+                                ! scale noise to keep in between [1 and Tm]
+                                noise = min(noise, 1.0 - base_val)
+                                noise = max(noise, pf_Tm - base_val)
+                                tempr(k,j,i) = base_val + noise
+                                !tempr(k,j,i) = tempr(k,j,i) &
+                                !    + amp*sin(2.0*pi*ymode*yyy)*cos(2.0*pi*zmode*zzz)*sin(pi*xxx/h0)**2
                             end if
                         end do
                     else
                         do k=1,nxmr
                             xxx = xmr(k)
                             if (xxx < h0) then
-                                tempr(k,j,i) = tempr(k,j,i) &
-                                    + amp*sin(4.0*pi*yyy)*((sin(2.0*pi*xxx))**2)
+                                 base_val = tempr(k,j,i)
+                                 call random_number(r)
+                                 noise = amp * (2.0 * r - 1.0)
+                                 ! scale noise to keep between [1 and Tm]
+                                 noise = min(noise, 1.0 - base_val)
+                                 noise = max(noise, pf_Tm - base_val)
+                                 tempr(k,j,i) = base_val + noise
+                            !    tempr(k,j,i) = tempr(k,j,i) &
+                            !        + amp*sin(4.0*pi*yyy)*((sin(2.0*pi*xxx))**2)
                             end if
                         end do
                     end if

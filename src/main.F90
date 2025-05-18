@@ -1,4 +1,5 @@
 program AFiD
+!    use omp_lib
     use mpih
     use param
     use local_arrays, only: vx,vy,vz,temp,pr
@@ -27,6 +28,7 @@ program AFiD
     integer :: prow=0,pcol=0
     integer :: lfactor,lfactor2
     character(100) :: arg
+!    integer :: nthreads
     logical :: write_mean_planes=.true.!, nanexist
     ! real,allocatable,dimension(:,:) :: dummy,dscan,dbot
     ! integer :: comm,ierror,row_id,row_coords(2),ic,jc,kc
