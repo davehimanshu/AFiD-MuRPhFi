@@ -436,6 +436,9 @@ def generate_multi_var_xmf(folder, vars, resolution_ps=None, resolution_vt=None)
     resolution_vt : array-like  
         1x3 array specifying resolution [nx, ny, nz] for velocity/temperature fields
     """
+    # Remove any trailing slashes from folder path to prevent double slashes
+    folder = folder.rstrip('/')
+    
     # Check if the h5 files stored in the viz folder have the same size arrays for the variables within the file
     filelist = sorted(os.listdir(folder + "/outputdir/viz"))
     fvlist = list(filter(lambda fname: any(var in fname for var in vars), filelist))
